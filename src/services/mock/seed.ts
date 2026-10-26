@@ -1,5 +1,6 @@
 import type { AppData, RoomInventory } from '@/types/domain'
 import { todayPlus } from '@/lib/utils'
+import { mergeSeedExtras } from './seed-extras'
 
 export const DEMO_PASSWORD = 'Demo@123'
 export const DEMO_CANCELLATION_TERMS = { freeUntilHours: 24, lateFeeRate: 0.5, checkInHour: 14 }
@@ -20,8 +21,8 @@ export function seedData(): AppData {
   }
   const now = new Date().toISOString()
   const earlier = new Date(Date.now() - 20 * 86400000).toISOString()
-  return {
-    version: 2,
+  return mergeSeedExtras({
+    version: 3,
     users: [
       { id: 'user-tourist', name: 'Nguyễn Minh Anh', email: 'khach@demo.vn', role: 'tourist', phone: '0901234567', verified: true },
       { id: 'user-partner', name: 'Trần Hải Nam', email: 'doitac@demo.vn', role: 'partner', phone: '0902223344', verified: true },
@@ -70,5 +71,5 @@ export function seedData(): AppData {
     services: [{ id: 'service-sea', name: 'Sea Garden Hotel', categoryId: 'cat-hotel', partnerId: 'partner-sea', city: 'Đà Nẵng', price: 1200000, active: true }, { id: 'service-river', name: 'River Light Hotel', categoryId: 'cat-hotel', partnerId: 'partner-river', city: 'Đà Nẵng', price: 900000, active: true }],
     settlements: [{ id: 'SET-DEMO-001', partnerId: 'partner-sea', hotelId: 'sea-garden', periodStart: todayPlus(-30), periodEnd: todayPlus(-15), bookingIds: ['BK-DEMO-001'], gross: 2400000, commission: 240000, adjustment: 0, net: 2160000, status: 'DRAFT', revision: 1 }],
     favorites: { 'user-tourist': ['my-khe', 'sea-garden'] },
-  }
+  })
 }

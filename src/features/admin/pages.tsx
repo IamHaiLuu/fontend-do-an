@@ -12,18 +12,6 @@ import type { VerificationStatus } from '@/types/domain'
 
 function AdminStat({ label, value }: { label: string; value: string }) { return <Card className="p-5"><p className="text-sm text-slate-500">{label}</p><p className="mt-3 text-2xl font-semibold text-[#1E3A5F]">{value}</p></Card> }
 
-export function AdminDashboard() {
-  const { data, isLoading, error } = useAdminData()
-  const queryClient = useQueryClient()
-  const [message, setMessage] = useState('')
-  if (isLoading) return <LoadingState />
-  if (error) return <ErrorState message={errorMessage(error)} />
-  const paid = data?.payments.filter(p => p.status === 'PAID').reduce((n, p) => n + p.amount, 0) ?? 0
-  const pendingRefunds = data?.refunds.filter(r => r.status === 'PENDING' || r.status === 'PROCESSING') ?? []
-  const pendingPartners = data?.partners.filter(p => p.status === 'PENDING' || p.status === 'NEEDS_INFO') ?? []
-  return <div><PageHeader title="Tổng quan quản trị" description="Số liệu tổng hợp trực tiếp từ dữ liệu demo hiện có." /><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><AdminStat label="Người dùng" value={String(data?.users.length ?? 0)} /><AdminStat label="Đối tác" value={String(data?.partners.length ?? 0)} /><AdminStat label="Booking" value={String(data?.bookings.length ?? 0)} /><AdminStat label="Thanh toán đã ghi nhận" value={currency(paid)} /></div><div className="mt-6 grid gap-5 lg:grid-cols-2"><Card className="p-5"><div className="flex items-center justify-between"><h2 className="text-lg font-semibold">Hồ sơ cần xử lý</h2><Link className="text-sm font-semibold text-[#1E3A5F]" to="/admin/partners">Xem tất cả →</Link></div>{pendingPartners.length ? <div className="mt-4 grid gap-3">{pendingPartners.map(p => <div key={p.id} className="flex items-center justify-between gap-2 border-b border-slate-100 pb-3 text-sm"><span>{p.name}</span><StatusBadge status={p.status} /></div>)}</div> : <p className="mt-4 text-sm text-slate-500">Không có hồ sơ chờ xử lý.</p>}</Card><Card className="p-5"><h2 className="text-lg font-semibold">Hoàn tiền demo đang chờ</h2>{pendingRefunds.length ? <div className="mt-4 grid gap-3">{pendingRefunds.map(r => <div key={r.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3 text-sm"><div><p className="font-semibold">{r.bookingId}</p><p className="text-slate-500">{currency(r.amount)}</p><StatusBadge status={r.status} /></div>{isMock && <div className="flex gap-2"><Button size="sm" variant="secondary" onClick={async () => { try { await repo.resolveRefund(r.bookingId, r.status === 'PENDING' ? 'PROCESSING' : 'REFUNDED'); await queryClient.invalidateQueries(); setMessage(r.status === 'PENDING' ? 'Đã chuyển yêu cầu hoàn tiền sang xử lý demo.' : 'Đã mô phỏng hoàn tiền thành công.') } catch (err) { setMessage(errorMessage(err)) } }}>{r.status === 'PENDING' ? 'Bắt đầu xử lý demo' : 'Hoàn thành demo'}</Button><Button size="sm" variant="ghost" disabled={r.status === 'PENDING'} onClick={async () => { try { await repo.resolveRefund(r.bookingId, 'FAILED'); await queryClient.invalidateQueries(); setMessage('Đã mô phỏng hoàn tiền thất bại.') } catch (err) { setMessage(errorMessage(err)) } }}>Thất bại demo</Button></div>}</div>)}</div> : <p className="mt-4 text-sm text-slate-500">Không có yêu cầu hoàn tiền đang chờ.</p>}</Card></div><div className="mt-4"><Feedback message={message} kind={message.startsWith('Đã') ? 'success' : 'error'} /></div></div>
-}
-
 export function AdminPartnersPage() {
   const { data, isLoading, error } = useAdminData()
   const [params, setParams] = useSearchParams()

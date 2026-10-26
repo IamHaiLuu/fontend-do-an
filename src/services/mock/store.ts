@@ -1,16 +1,20 @@
 import { seedData } from './seed'
+import { mergeSeedExtras } from './seed-extras'
 import type { AppData } from '@/types/domain'
 
+// Keep the existing key so v2 demo changes can be upgraded in place.
 const STORAGE_KEY = 'smarttravel.demo.v2'
 
 export function readData(): AppData {
   let data: AppData
+  let changed: boolean
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     data = raw ? JSON.parse(raw) as AppData : seedData()
-    if (data.version !== 2) data = seedData()
-  } catch { data = seedData() }
-  let changed = !localStorage.getItem(STORAGE_KEY)
+    changed = !raw
+    if (data.version === 2) { data = mergeSeedExtras(data); changed = true }
+    else if (data.version !== 3) { data = seedData(); changed = true }
+  } catch { data = seedData(); changed = true }
   const now = Date.now()
   for (const booking of data.bookings) {
     if (booking.status === 'PENDING_PAYMENT' && new Date(booking.holdExpiresAt).getTime() <= now) {

@@ -22,6 +22,9 @@ test('lọc khách sạn theo sao và giá, hiển thị trạng thái rỗng', 
   await expect(page.getByText('Sea Garden Hotel')).toBeVisible()
   await page.getByLabel('Điểm đến').fill('Đà Lạt')
   await page.getByRole('button', { name: 'Tìm phòng' }).click()
+  await expect(page.getByText('Pine Valley Đà Lạt')).toBeVisible()
+  await page.getByLabel('Điểm đến').fill('Sa Pa')
+  await page.getByRole('button', { name: 'Tìm phòng' }).click()
   await expect(page.getByRole('heading', { name: 'Không có khách sạn phù hợp' })).toBeVisible()
 })
 
@@ -45,6 +48,13 @@ test('du khách đăng nhập và tạo lịch trình demo', async ({ page }) =>
   await expect(page.getByText('Lịch trình của bạn')).toBeVisible()
   await page.getByRole('button', { name: 'Lưu lịch trình' }).click()
   await expect(page).toHaveURL(/\/trips\//)
+})
+
+test('dữ liệu mới xuất hiện trong bộ lập lịch Huế', async ({ page }) => {
+  await page.goto('/ai/trip-planner')
+  await page.getByLabel('Điểm đến').selectOption('Huế')
+  await page.getByRole('button', { name: 'Tạo lịch trình demo' }).click()
+  await expect(page.getByText('Kinh thành Huế').first()).toBeVisible()
 })
 
 test('đối tác chỉ sửa phòng bán và giá', async ({ page }) => {

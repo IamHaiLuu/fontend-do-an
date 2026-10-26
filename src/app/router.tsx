@@ -34,7 +34,7 @@ const PartnerHome = lazy(() => import('@/features/partner/pages').then(m => ({ d
 const PartnerRooms = lazy(() => import('@/features/partner/pages').then(m => ({ default: m.PartnerRoomsPage })))
 const PartnerRoomForm = lazy(() => import('@/features/partner/pages').then(m => ({ default: m.PartnerRoomFormPage })))
 const PartnerInventory = lazy(() => import('@/features/partner/pages').then(m => ({ default: m.PartnerInventoryPage })))
-const AdminHome = lazy(() => import('@/features/admin/pages').then(m => ({ default: m.AdminDashboard })))
+const AdminHome = lazy(() => import('@/features/admin/dashboard').then(m => ({ default: m.AdminDashboard })))
 const AdminPartners = lazy(() => import('@/features/admin/pages').then(m => ({ default: m.AdminPartnersPage })))
 const AdminPartnerDetail = lazy(() => import('@/features/admin/pages').then(m => ({ default: m.AdminPartnerDetailPage })))
 const AdminServices = lazy(() => import('@/features/admin/pages').then(m => ({ default: m.AdminServicesPage })))

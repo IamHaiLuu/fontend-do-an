@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, NavLink, Outlet, useNavigate } from 'react-router'
-import { Compass, Heart, Hotel, LayoutDashboard, LogOut, Map, Menu, ShieldCheck, UserRound, X } from 'lucide-react'
+import { ChartNoAxesColumn, Compass, Heart, Hotel, LayoutDashboard, LogOut, Map, Menu, MessageSquareText, ReceiptText, ShieldCheck, Tags, UserRound, UsersRound, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useSession } from '@/stores/session'
 import { isMock, repo } from '@/services'
@@ -10,11 +10,12 @@ const publicNav = [
   { to: '/', label: 'Trang chủ' }, { to: '/explore', label: 'Khám phá' }, { to: '/hotels', label: 'Khách sạn' },
   { to: '/restaurants', label: 'Nhà hàng' }, { to: '/trips', label: 'Chuyến đi' }, { to: '/ai/recommendations', label: 'Gợi ý AI' },
 ]
-const partnerNav = [{ to: '/partner', label: 'Tổng quan' }, { to: '/partner/rooms', label: 'Loại phòng' }]
+const partnerNav = [{ to: '/partner', label: 'Tổng quan', icon: LayoutDashboard }, { to: '/partner/rooms', label: 'Loại phòng', icon: Hotel }]
 const adminNav = [
-  { to: '/admin', label: 'Tổng quan' }, { to: '/admin/partners', label: 'Đối tác' }, { to: '/admin/services', label: 'Dịch vụ' },
-  { to: '/admin/service-categories', label: 'Danh mục' }, { to: '/admin/reviews', label: 'Đánh giá' },
-  { to: '/admin/reports', label: 'Báo cáo' }, { to: '/admin/settlements', label: 'Đối soát' },
+  { to: '/admin', label: 'Tổng quan', icon: LayoutDashboard }, { to: '/admin/partners', label: 'Đối tác', icon: UsersRound },
+  { to: '/admin/services', label: 'Dịch vụ', icon: Hotel }, { to: '/admin/service-categories', label: 'Danh mục', icon: Tags },
+  { to: '/admin/reviews', label: 'Đánh giá', icon: MessageSquareText }, { to: '/admin/reports', label: 'Báo cáo', icon: ChartNoAxesColumn },
+  { to: '/admin/settlements', label: 'Đối soát', icon: ReceiptText },
 ]
 
 function Brand() { return <Link to="/" className="flex items-center gap-2 text-lg font-bold tracking-tight text-[#1E3A5F]"><span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#1E3A5F] text-white"><Compass size={21} /></span>Hành Trình Việt</Link> }
@@ -42,11 +43,16 @@ export function DashboardLayout({ kind }: { kind: 'partner' | 'admin' }) {
   const logout = useSession(s => s.logout)
   const navigate = useNavigate()
   const links = kind === 'partner' ? partnerNav : adminNav
+  const container = kind === 'admin' ? 'container-dashboard' : 'container-app'
   return <div className="min-h-screen bg-[#F8FAFC]">
-    <header className="border-b border-slate-200 bg-white"><div className="container-app flex h-16 items-center justify-between"><Brand /><div className="flex items-center gap-3 text-sm text-slate-600"><span className="hidden sm:inline">{user?.name}</span><Button variant="ghost" size="sm" onClick={() => { logout(); navigate('/') }}><LogOut size={16} />Đăng xuất</Button></div></div></header>
-    <div className="container-app grid gap-6 py-7 lg:grid-cols-[230px_minmax(0,1fr)]">
-      <aside className="h-fit rounded-xl border border-slate-200 bg-white p-3"><div className="mb-3 flex items-center gap-2 px-3 pt-2 text-sm font-semibold text-slate-800">{kind === 'partner' ? <Hotel size={17} /> : <ShieldCheck size={17} />}{kind === 'partner' ? 'Khu vực đối tác' : 'Quản trị hệ thống'}</div><nav aria-label="Điều hướng quản lý" className="grid gap-1 sm:grid-cols-2 lg:grid-cols-1">{links.map(n => <NavLink end key={n.to} to={n.to} className={({ isActive }) => 'rounded-lg px-3 py-2 text-sm ' + (isActive ? 'bg-[#EAF0F6] font-semibold text-[#1E3A5F]' : 'text-slate-600 hover:bg-slate-50')}>{n.label}</NavLink>)}</nav><Link to="/" className="mt-4 flex items-center gap-2 border-t border-slate-100 px-3 pt-4 text-sm text-slate-500 hover:text-[#1E3A5F]"><Map size={16} />Về trang du lịch</Link></aside>
-      <main id="main" className="min-w-0"><Outlet /></main>
+    <header className="border-b border-slate-200 bg-white"><div className={container + ' flex h-[72px] items-center justify-between gap-4'}><Brand /><div className="flex items-center gap-3 text-sm text-slate-600"><span className="hidden h-9 w-9 items-center justify-center rounded-full bg-[#EAF0F6] font-semibold text-[#1E3A5F] sm:flex">{user?.name?.charAt(0) ?? 'U'}</span><span className="hidden font-medium text-slate-700 sm:inline">{user?.name}</span><span className="hidden h-5 w-px bg-slate-200 sm:block" /><Button variant="ghost" size="sm" onClick={() => { logout(); navigate('/') }}><LogOut size={16} />Đăng xuất</Button></div></div></header>
+    <div className={container + ' grid gap-6 py-7 lg:grid-cols-[244px_minmax(0,1fr)] xl:gap-8'}>
+      <aside className="flex h-fit flex-col rounded-2xl border border-slate-200 bg-white p-3 shadow-sm lg:sticky lg:top-6 lg:min-h-[calc(100vh-128px)]">
+        <div className="flex items-center gap-3 border-b border-slate-100 px-3 py-4"><span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#EAF0F6] text-[#1E3A5F]">{kind === 'partner' ? <Hotel size={18} /> : <ShieldCheck size={18} />}</span><div><p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Không gian làm việc</p><p className="font-semibold text-[#1E3A5F]">{kind === 'partner' ? 'Khu vực đối tác' : 'Quản trị hệ thống'}</p></div></div>
+        <nav aria-label="Điều hướng quản lý" className="mt-3 grid gap-1 sm:grid-cols-2 lg:grid-cols-1">{links.map(n => { const Icon = n.icon; return <NavLink end key={n.to} to={n.to} className={({ isActive }) => 'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ' + (isActive ? 'bg-[#EAF0F6] font-semibold text-[#1E3A5F]' : 'text-slate-600 hover:bg-slate-50 hover:text-[#1E3A5F]')}><Icon size={17} strokeWidth={1.8} />{n.label}</NavLink> })}</nav>
+        <Link to="/" className="mt-4 flex items-center gap-3 border-t border-slate-100 px-3 pt-4 text-sm text-slate-500 hover:text-[#1E3A5F] lg:mt-auto"><Map size={17} />Về trang du lịch</Link>
+      </aside>
+      <main id="main" className="min-w-0 pb-10"><Outlet /></main>
     </div>
   </div>
 }

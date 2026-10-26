@@ -11,6 +11,8 @@ input:focus, select:focus, textarea:focus { border-color: #1E3A5F; box-shadow: 0
 input:disabled, select:disabled, textarea:disabled { background: #F1F5F9; color: #64748B; }
 a:focus-visible { outline: 2px solid #1E3A5F; outline-offset: 3px; border-radius: 3px; }
 .container-app { width: min(100% - 32px, 1240px); margin-inline: auto; }
+.container-dashboard { width: min(100% - 48px, 1640px); margin-inline: auto; }
+@media (max-width: 640px) { .container-dashboard { width: min(100% - 32px, 1640px); } }
 .section-pad { padding-block: 52px; }
 .link-nav { color: #475569; font-size: 14px; font-weight: 500; transition: color 150ms; }
 .link-nav:hover, .link-nav.active { color: #1E3A5F; }

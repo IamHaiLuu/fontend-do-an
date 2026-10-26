@@ -32,6 +32,8 @@ Mật khẩu chung: Demo@123. Nút chọn nhanh ở trang đăng nhập sẽ đi
 
 OTP đăng ký/đặt lại mật khẩu demo là 123456 và hiển thị công khai; không gửi email thật. Google OAuth bị vô hiệu hóa khi không có backend. Dữ liệu demo lưu ở localStorage, phiên đăng nhập và bản nháp lịch trình ở sessionStorage. Chọn **Đặt lại dữ liệu** trên thanh thông báo để khôi phục seed.
 
+Seed v3 có 22 điểm đến, 8 khách sạn, 10 loại phòng, 11 nhà hàng, cùng chuyến đi, booking, đánh giá và đối soát mẫu. Lần mở đầu sau khi nâng từ seed v2 sẽ thêm các bản ghi mới vào localStorage mà giữ các bản ghi cũ đã chỉnh sửa. **Đặt lại dữ liệu** sẽ thay toàn bộ dữ liệu demo bằng seed mới.
+
 ## Cấu trúc
 
 - src/app: router, phân quyền và layout.
