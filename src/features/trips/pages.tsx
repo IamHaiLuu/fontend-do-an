@@ -5,47 +5,11 @@ import { CalendarDays, Clock3, MapPin, Plus, Sparkles, Trash2 } from 'lucide-rea
 import { Button } from '@/components/ui/button'
 import { Card, EmptyState, ErrorState, Feedback, FormField, LoadingState, PageHeader, StatusBadge } from '@/components/common'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
-import { repo, isMock } from '@/services'
-import { addDay, currency, day, errorMessage, nights, todayPlus } from '@/lib/utils'
+import { repo } from '@/services'
+import { currency, day, errorMessage, todayPlus } from '@/lib/utils'
 import { useSession } from '@/stores/session'
-import { useCatalog, useTourist } from '@/hooks/data'
-import type { Itinerary, PlannerInput, PlannerResult, Stopover, TravelActivity } from '@/types/domain'
-
-const interestOptions = ['Biển', 'Thiên nhiên', 'Ẩm thực', 'Văn hóa', 'Mua sắm', 'Nghỉ dưỡng', 'Khám phá']
-const emptyPlanner: PlannerInput = { city: 'Đà Nẵng', startDate: todayPlus(7), endDate: todayPlus(9), adults: 2, children: 0, budget: 6000000, interests: ['Biển', 'Ẩm thực'], style: 'Cân bằng', note: '' }
-
-export function PlannerPage() {
-  const { data: catalog } = useCatalog()
-  const user = useSession(s => s.user)
-  const draft = useSession(s => s.draft)
-  const setDraft = useSession(s => s.setDraft)
-  const navigate = useNavigate()
-  const queryClient = useQueryClient()
-  const [form, setForm] = useState<PlannerInput>(emptyPlanner)
-  const [refine, setRefine] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [message, setMessage] = useState('')
-  const cityOptions = [...new Set(catalog?.destinations.map(place => place.city) ?? ['Đà Nẵng', 'Đà Lạt', 'Quảng Nam'])]
-  const set = <K extends keyof PlannerInput>(key: K, value: PlannerInput[K]) => setForm(prev => ({ ...prev, [key]: value }))
-  const generate = async (note = form.note) => {
-    if (!form.city.trim() || form.startDate > form.endDate || form.adults < 1 || form.children < 0 || form.budget <= 0) { setMessage('Kiểm tra điểm đến, ngày đi, số khách và ngân sách.'); return }
-    setLoading(true); setMessage('')
-    try { const result = await repo.plan({ ...form, note }); setDraft(result); setRefine(''); if (result.totalCost > form.budget) setMessage('Chi phí ước tính vượt ngân sách. Bạn có thể tinh chỉnh hoặc sửa lịch trình.') } catch (error) { setMessage(errorMessage(error)) } finally { setLoading(false) }
-  }
-  const editActivity = (id: string, name: string) => { if (!draft) return; setDraft({ ...draft, activities: draft.activities.map(a => a.id === id ? { ...a, name } : a) }) }
-  const save = async () => {
-    if (!draft) return
-    if (!user || user.role !== 'tourist') { navigate('/auth/login?returnTo=' + encodeURIComponent('/ai/trip-planner')); return }
-    try { const trip = await repo.savePlannedTrip(user.id, draft); setDraft(null); await queryClient.invalidateQueries({ queryKey: ['tourist'] }); navigate('/trips/' + trip.id) } catch (error) { setMessage(errorMessage(error)) }
-  }
-  return <div className="container-app section-pad"><PageHeader title="Lập lịch trình với AI demo" description="Chọn thông tin chuyến đi. Công cụ demo dùng địa điểm sẵn có và quy tắc sắp xếp minh bạch." /><div className="grid gap-7 lg:grid-cols-[.88fr_1.12fr]"><Card className="h-fit p-6"><h2 className="text-lg font-semibold">Thông tin chuyến đi</h2><div className="mt-5 grid gap-4 sm:grid-cols-2"><FormField label="Điểm đến"><select value={form.city} onChange={e => set('city', e.target.value)}>{cityOptions.map(city => <option key={city}>{city}</option>)}</select></FormField><FormField label="Ngân sách dự kiến (VND)"><input type="number" min="1" step="100000" value={form.budget} onChange={e => set('budget', Number(e.target.value))} /></FormField><FormField label="Ngày bắt đầu"><input type="date" min={todayPlus(0)} value={form.startDate} onChange={e => set('startDate', e.target.value)} /></FormField><FormField label="Ngày kết thúc"><input type="date" min={form.startDate} value={form.endDate} onChange={e => set('endDate', e.target.value)} /></FormField><FormField label="Người lớn"><input type="number" min="1" max="12" value={form.adults} onChange={e => set('adults', Number(e.target.value))} /></FormField><FormField label="Trẻ em"><input type="number" min="0" max="10" value={form.children} onChange={e => set('children', Number(e.target.value))} /></FormField></div><fieldset className="mt-5"><legend className="mb-3 text-sm font-semibold">Sở thích</legend><div className="flex flex-wrap gap-2">{interestOptions.map(x => <label key={x} className={'cursor-pointer rounded-full border px-3 py-2 text-sm ' + (form.interests.includes(x) ? 'border-[#1E3A5F] bg-[#EAF0F6] text-[#1E3A5F]' : 'border-slate-200')}><input className="sr-only" type="checkbox" checked={form.interests.includes(x)} onChange={() => set('interests', form.interests.includes(x) ? form.interests.filter(y => y !== x) : [...form.interests, x])} />{x}</label>)}</div></fieldset><div className="mt-5"><FormField label="Phong cách"><select value={form.style} onChange={e => set('style', e.target.value)}><option>Tiết kiệm</option><option>Cân bằng</option><option>Thoải mái</option><option>Nghỉ dưỡng</option></select></FormField></div><div className="mt-5"><FormField label="Yêu cầu bổ sung"><textarea value={form.note} onChange={e => set('note', e.target.value)} placeholder="Ví dụ: lịch thư giãn, ít hoạt động mỗi ngày" /></FormField></div><Button className="mt-5 w-full" disabled={loading} onClick={() => generate()}><Sparkles size={17} />{loading ? 'Đang sắp xếp lịch demo...' : 'Tạo lịch trình demo'}</Button><div className="mt-4"><Feedback message={message} kind={message.startsWith('Chi phí') ? 'success' : 'error'} /></div></Card>
-    <div>{loading ? <LoadingState label="Đang chọn địa điểm và sắp xếp hoạt động trong dữ liệu demo..." /> : draft ? <><Card className="p-6"><div className="flex flex-wrap items-start justify-between gap-4"><div><p className="text-xs font-semibold uppercase tracking-wide text-[#1E3A5F]">Lịch trình của bạn · bản nháp demo</p><h2 className="mt-2 text-2xl font-semibold">{draft.trip.name}</h2><p className="mt-1 text-sm text-slate-500">{day(draft.trip.startDate)} – {day(draft.trip.endDate)} · {draft.trip.adults + draft.trip.children} khách</p></div><div className="text-right"><p className="text-xs text-slate-500">Chi phí ước tính</p><p className="text-xl font-semibold text-[#1E3A5F]">{currency(draft.totalCost)}</p></div></div><p className="mt-4 text-sm text-slate-600">{draft.explanation}</p>{draft.totalCost > draft.trip.budget && <p className="mt-3 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">Vượt ngân sách dự kiến {currency(draft.trip.budget)}.</p>}<div className="mt-6 flex flex-wrap gap-2"><Button onClick={save}>Lưu lịch trình</Button><Button variant="secondary" onClick={() => generate()}>Tạo lại</Button><Button variant="ghost" asChild><Link to="/trips">Chuyến đi của tôi</Link></Button></div></Card><div className="mt-5"><TripTimeline result={draft} editable onEdit={editActivity} /></div><Card className="mt-5 p-5"><FormField label="Tinh chỉnh lịch trình" hint="Ví dụ: Giảm hoạt động để lịch thư giãn hơn."><input value={refine} onChange={e => setRefine(e.target.value)} placeholder="Yêu cầu điều chỉnh" /></FormField><Button className="mt-3" variant="secondary" disabled={!refine.trim()} onClick={() => generate(form.note + ' ' + refine)}>Tinh chỉnh demo</Button></Card></> : <Card className="flex min-h-80 flex-col items-center justify-center p-8 text-center"><CalendarDays size={36} className="text-slate-400" /><h2 className="mt-4 text-xl font-semibold">Lịch trình sẽ xuất hiện ở đây</h2><p className="mt-2 max-w-sm text-sm text-slate-500">Chọn điểm đến và ngày đi, sau đó tạo bản nháp có thể chỉnh sửa và lưu.</p></Card>}{isMock && <p className="mt-4 text-xs text-slate-500">Công cụ demo không gọi AI thật; chi phí và thời gian di chuyển chỉ là ước tính.</p>}</div></div></div>
-}
-
-export function TripTimeline({ result, editable = false, onEdit }: { result: PlannerResult; editable?: boolean; onEdit?: (id: string, name: string) => void }) {
-  const days = Array.from({ length: nights(result.trip.startDate, result.trip.endDate) + 1 }, (_, i) => addDay(result.trip.startDate, i))
-  return <div className="grid gap-4">{days.map((date, index) => <Card key={date} className="p-5"><h3 className="text-lg font-semibold">Ngày {index + 1} · {day(date)}</h3><div className="mt-4 grid gap-3">{result.stops.filter(s => s.start.startsWith(date)).sort((a, b) => a.start.localeCompare(b.start)).map(stop => <div className="grid grid-cols-[60px_1fr] gap-3 border-l-2 border-[#BFD0DE] pl-4" key={stop.id}><span className="text-sm font-semibold text-[#1E3A5F]">{stop.start.slice(11, 16)}</span><div><p className="font-semibold">{stop.name}</p><p className="text-xs text-slate-500">{stop.address} · đến {stop.end.slice(11, 16)}</p>{result.activities.filter(a => a.stopId === stop.id).map(activity => <div key={activity.id} className="mt-2 text-sm text-slate-600">{editable && onEdit ? <input aria-label={'Tên hoạt động tại ' + stop.name} value={activity.name} onChange={e => onEdit(activity.id, e.target.value)} /> : activity.name}{activity.cost > 0 && <span className="ml-2 text-xs">{currency(activity.cost)}</span>}</div>)}</div></div>)}</div></Card>)}</div>
-}
+import { useTourist } from '@/hooks/data'
+import type { Itinerary, Stopover, TravelActivity } from '@/types/domain'
 
 export function TripsPage() {
   const user = useSession(s => s.user)

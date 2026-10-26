@@ -5,7 +5,7 @@ import { AuthLayout, DashboardLayout, NotFound, TouristLayout } from './layouts'
 import { useSession } from '@/stores/session'
 import type { Role } from '@/types/domain'
 
-const Home = lazy(() => import('@/features/public/catalog').then(m => ({ default: m.HomePage })))
+const Home = lazy(() => import('@/features/public/home').then(m => ({ default: m.HomePage })))
 const Explore = lazy(() => import('@/features/public/catalog').then(m => ({ default: m.ExplorePage })))
 const DestinationDetail = lazy(() => import('@/features/public/catalog').then(m => ({ default: m.DestinationDetailPage })))
 const Hotels = lazy(() => import('@/features/public/catalog').then(m => ({ default: m.HotelsPage })))
@@ -21,7 +21,7 @@ const Register = lazy(() => import('@/features/auth/pages').then(m => ({ default
 const VerifyOtp = lazy(() => import('@/features/auth/pages').then(m => ({ default: m.VerifyOtpPage })))
 const ForgotPassword = lazy(() => import('@/features/auth/pages').then(m => ({ default: m.ForgotPasswordPage })))
 const ResetPassword = lazy(() => import('@/features/auth/pages').then(m => ({ default: m.ResetPasswordPage })))
-const Planner = lazy(() => import('@/features/trips/pages').then(m => ({ default: m.PlannerPage })))
+const Planner = lazy(() => import('@/features/trips/planner').then(m => ({ default: m.PlannerPage })))
 const Trips = lazy(() => import('@/features/trips/pages').then(m => ({ default: m.TripsPage })))
 const TripForm = lazy(() => import('@/features/trips/pages').then(m => ({ default: m.TripFormPage })))
 const TripDetail = lazy(() => import('@/features/trips/pages').then(m => ({ default: m.TripDetailPage })))

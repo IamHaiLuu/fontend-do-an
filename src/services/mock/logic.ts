@@ -142,37 +142,55 @@ export const mock = {
     assert(input.city.trim(), 'CITY', 'Vui lòng chọn điểm đến.')
     assert(input.startDate >= todayPlus(0), 'DATE', 'Ngày bắt đầu không được ở quá khứ.')
     assert(input.startDate <= input.endDate, 'DATE', 'Ngày kết thúc không hợp lệ.')
+    assert(input.adults >= 1 && input.children >= 0 && input.budget > 0, 'INPUT', 'Kiểm tra số khách và ngân sách.')
     const days = nights(input.startDate, input.endDate) + 1
     assert(days > 0 && days <= 10, 'DATE', 'Chuyến đi demo hỗ trợ từ 1 đến 10 ngày.')
     const data = readData()
     const places = data.destinations.filter(d => d.city.toLowerCase().includes(input.city.toLowerCase()))
     assert(places.length, 'EMPTY', 'Chưa có dữ liệu địa điểm cho điểm đến này.')
-    const ranked = [...places].sort((a, b) => input.interests.filter(t => b.tags.includes(t)).length - input.interests.filter(t => a.tags.includes(t)).length)
+    const guests = input.adults + input.children
+    const lodgingCost = Math.max(0, days - 1) * 1200000
+    const foodCost = days * guests * 250000
+    let remainingActivityBudget = Math.max(0, input.budget - lodgingCost - foodCost)
+    const matches = (place: typeof places[number]) => input.interests.filter(tag => place.tags.includes(tag) || place.category === tag)
+    const requested = (place: typeof places[number]) => input.note.toLowerCase().includes(place.category.toLowerCase())
+    const score = (place: typeof places[number]) => matches(place).length * 10 + (requested(place) ? 18 : 0) + (place.rating ?? 0) - (input.style === 'Tiết kiệm' ? place.price / 100000 : 0)
+    const ranked = [...places].sort((a, b) => score(b) - score(a) || a.name.localeCompare(b.name, 'vi'))
     const tripId = uid('trip')
     const trip: Itinerary = { id: tripId, userId: '', name: 'Khám phá ' + input.city, city: input.city, startDate: input.startDate, endDate: input.endDate, adults: input.adults, children: input.children, budget: input.budget, note: input.note, source: 'demo-planner', status: 'DRAFT' }
     const stops: Stopover[] = []
     const activities: TravelActivity[] = []
-    let totalCost = 0
+    const reasons: Record<string, string> = {}
+    let activityCost = 0
+    const quiet = input.style === 'Nghỉ dưỡng' || /giảm|ít hoạt động|thư giãn/i.test(input.note)
     for (let d = 0; d < days; d++) {
       const dateText = addDay(input.startDate, d)
-      const count = input.style === 'Nghỉ dưỡng' || /giảm|ít hoạt động|thư giãn/i.test(input.note) ? 2 : 3
-      for (let j = 0; j < Math.min(count, ranked.length); j++) {
+      const count = quiet ? 2 : 3
+      const usedToday = new Set<string>()
+      for (let j = 0; j < count; j++) {
         const startHour = j === 0 ? 9 : j === 1 ? 13 : 16
         const endHour = startHour + (j === 2 ? 1 : 2)
-        const openPlaces = ranked.filter(place => opensDuring(place.openingHours, startHour, endHour))
-        const place = openPlaces[(d * count + j) % openPlaces.length]
+        const openPlaces = ranked.filter(place => !usedToday.has(place.id) && opensDuring(place.openingHours, startHour, endHour))
+        const affordable = openPlaces.filter(place => place.price * guests <= Math.max(0, remainingActivityBudget))
+        const choices = affordable.length ? affordable : openPlaces
+        const place = choices.length ? choices[(d + j) % choices.length] : undefined
         if (!place) continue
+        usedToday.add(place.id)
         const start = dateText + 'T' + String(startHour).padStart(2, '0') + ':00'
         const end = dateText + 'T' + String(endHour).padStart(2, '0') + ':00'
         const stopId = uid('stop')
         stops.push({ id: stopId, tripId, placeId: place.id, name: place.name, address: place.region + ', ' + place.city, start, end, order: stops.length + 1, note: place.description })
         activities.push({ id: uid('activity'), stopId, name: 'Tham quan ' + place.name, start, end, placeId: place.id, note: place.openingHours ? 'Giờ tham khảo: ' + place.openingHours : '', cost: place.price })
-        totalCost += place.price * (input.adults + input.children)
+        const matched = matches(place)
+        reasons[stopId] = (requested(place) ? 'Theo yêu cầu về ' + place.category : matched.length ? 'Hợp sở thích ' + matched.join(', ') : 'Có trong danh mục ' + input.city) + '; mở cửa ' + (place.openingHours ?? 'chưa có thông tin')
+        activityCost += place.price * guests
+        remainingActivityBudget -= place.price * guests
       }
     }
     assert(stops.length > 0, 'OPEN_HOURS', 'Không có địa điểm mở cửa trong khung giờ lịch trình demo.')
-    totalCost += Math.max(0, days - 1) * 1200000 + days * (input.adults + input.children) * 250000
-    return { trip, stops, activities, totalCost, explanation: 'Lịch demo chọn địa điểm có trong danh mục, ưu tiên sở thích và chừa khoảng nghỉ giữa các hoạt động. Chi phí chỉ là ước tính.' }
+    const costBreakdown = { lodging: lodgingCost, food: foodCost, activities: activityCost }
+    const totalCost = costBreakdown.lodging + costBreakdown.food + costBreakdown.activities
+    return { trip, stops, activities, totalCost, costBreakdown, reasons, input, explanation: 'Lịch demo chọn địa điểm trong danh mục theo sở thích, ngân sách, giờ mở cửa và nhịp độ đã chọn. Khoảng nghỉ giữa các hoạt động chưa tính thời gian di chuyển. Lưu trú tạm tính 1.200.000 đ/đêm và ăn uống 250.000 đ/người/ngày.' }
   },
   savePlannedTrip: async (userId: string, result: PlannerResult) => commit(data => {
     const trip = { ...result.trip, userId, status: 'SAVED' as const }

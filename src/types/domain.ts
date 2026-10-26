@@ -50,6 +50,6 @@ export interface AppData {
 }
 
 export interface PlannerInput { city: string; startDate: string; endDate: string; adults: number; children: number; budget: number; interests: string[]; style: string; note: string }
-export interface PlannerResult { trip: Itinerary; stops: Stopover[]; activities: TravelActivity[]; totalCost: number; explanation: string }
+export interface PlannerResult { trip: Itinerary; stops: Stopover[]; activities: TravelActivity[]; totalCost: number; explanation: string; costBreakdown?: { lodging: number; food: number; activities: number }; reasons?: Record<string, string>; input?: PlannerInput }
 export interface BookingInput { hotelId: string; roomId: string; checkIn: string; checkOut: string; rooms: number; adults: number; children: number; guestName: string; guestEmail: string; guestPhone: string; specialRequest: string }
 export interface AppError { code: string; message: string; status?: number }

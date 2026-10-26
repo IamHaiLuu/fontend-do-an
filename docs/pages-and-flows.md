@@ -17,3 +17,5 @@
 | Tất cả | /403, route không tồn tại | Không có quyền, không tìm thấy | Hoạt động |
 
 Router kiểm tra vai trò trước khi mở trang protected, lưu returnTo để quay lại sau đăng nhập và chuyển vai trò sai sang 403. Backend phải kiểm tra lại quyền trên mọi endpoint thật.
+
+Giao diện công khai/du khách dùng thanh điều hướng ngang, ảnh minh họa và tìm kiếm nổi bật. Partner/Admin dùng sidebar, bảng, form và dashboard. Bộ lập lịch tại `/ai/trip-planner` đi theo luồng chọn nhu cầu → xem từng ngày và chi phí → tinh chỉnh → lưu; khách chưa đăng nhập giữ bản nháp trong phiên khi chuyển sang đăng nhập.

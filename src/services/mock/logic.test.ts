@@ -85,6 +85,29 @@ describe('mock nghiệp vụ du lịch', () => {
     localStorage.setItem('smarttravel.demo.v2', JSON.stringify(stored))
     await expect(mock.plan(input)).rejects.toThrow('Không có địa điểm mở cửa')
   })
+  it('giải thích điểm dừng, tách chi phí và giảm nhịp độ khi tinh chỉnh', async () => {
+    const input = { city: 'Đà Nẵng', startDate: todayPlus(7), endDate: todayPlus(9), adults: 2, children: 0, budget: 6000000, interests: ['Biển', 'Thiên nhiên'], style: 'Cân bằng', note: '' }
+    const plan = await mock.plan(input)
+    expect(plan.input).toEqual(input)
+    expect(plan.costBreakdown).toBeDefined()
+    expect(plan.totalCost).toBe(Object.values(plan.costBreakdown!).reduce((sum, value) => sum + value, 0))
+    for (const date of [todayPlus(7), todayPlus(8), todayPlus(9)]) {
+      const stops = plan.stops.filter(stop => stop.start.startsWith(date))
+      expect(new Set(stops.map(stop => stop.placeId)).size).toBe(stops.length)
+      for (const stop of stops) {
+        expect(plan.reasons?.[stop.id]).toContain('mở cửa')
+        expect(snapshot().destinations.some(place => place.id === stop.placeId)).toBe(true)
+      }
+    }
+    const relaxed = await mock.plan({ ...input, note: 'Giảm hoạt động, lịch thư giãn' })
+    expect(relaxed.stops.length).toBeLessThan(plan.stops.length)
+    expect(relaxed.stops.filter(stop => stop.start.startsWith(todayPlus(7))).length).toBeLessThanOrEqual(2)
+    const tightBudget = await mock.plan({ ...input, budget: 3900000 })
+    expect(tightBudget.costBreakdown?.activities).toBe(0)
+    expect(tightBudget.stops.every(stop => snapshot().destinations.find(place => place.id === stop.placeId)?.price === 0)).toBe(true)
+    const cultural = await mock.plan({ ...input, interests: [], note: 'Ưu tiên văn hóa' })
+    expect(cultural.stops.some(stop => cultural.reasons?.[stop.id]?.includes('Theo yêu cầu về Văn hóa'))).toBe(true)
+  })
   it('không cho giảm tồn bán dưới số đã đặt và phát hiện revision cũ', async () => {
     const date = todayPlus(8)
     const booking = await mock.createBooking('user-tourist', { hotelId: 'sea-garden', roomId: 'room-deluxe', checkIn: date, checkOut: todayPlus(9), rooms: 2, adults: 2, children: 0, guestName: 'Minh Anh', guestEmail: 'khach@demo.vn', guestPhone: '0901234567', specialRequest: '' })

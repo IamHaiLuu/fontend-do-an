@@ -17,6 +17,7 @@ Endpoint overview là đề xuất để giữ giao diện hiện tại; backend
 
 - Auth: POST /auth/login, /auth/register, /auth/verify-otp, /auth/resend-otp, /auth/forgot-password, /auth/reset-password; Google bắt đầu tại /auth/google/start.
 - Du khách: PATCH /users/:id, POST /users/:id/deletion-request, PUT hoặc DELETE /users/:id/preferences, POST /users/:id/favorites/toggle; POST /ai/recommendations, POST /ai/trip-planner; CRUD /users/:id/trips, /users/:id/trips/:tripId/stops, /users/:id/stops/:stopId/activities.
+- `POST /ai/trip-planner` nhận `PlannerInput` và trả `PlannerResult`. Ngoài chuyến đi, điểm dừng, hoạt động, tổng chi phí và giải thích, response có thể trả `costBreakdown` (`lodging`, `food`, `activities`), `reasons` theo ID điểm dừng và `input` để khôi phục bản nháp. Adapter API phải hiển thị lỗi backend; frontend không tự đổi sang kết quả demo.
 - Booking: POST /users/:id/bookings nhận BookingInput với Idempotency-Key; POST /users/:id/bookings/:bookingId/payments; POST /users/:id/bookings/:bookingId/cancel; POST /users/:id/bookings/:bookingId/reviews. Backend tính giá, khóa tồn phòng từng đêm và xác minh callback VNPAY.
 - Khi tạo booking, backend trả `policySnapshot` (mô tả) và `policyTermsSnapshot` gồm `freeUntilHours`, `lateFeeRate`, `checkInHour`; phí hủy phải tính từ bản chụp này theo giờ `Asia/Ho_Chi_Minh`.
 - Đối tác: POST hoặc PUT /partners/by-user/:id/rooms; PUT /partners/by-user/:id/rooms/:roomId/inventory. Gửi revision từng ngày; 409 khi có cập nhật đồng thời hoặc số bán thấp hơn đã đặt cộng đang giữ.
