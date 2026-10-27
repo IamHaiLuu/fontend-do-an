@@ -34,9 +34,9 @@ async function hash(value: string) {
 export const mock = {
   publicData: async () => {
     const data = readData()
-    const { destinations, hotels, rooms, inventory, restaurants, reviews, categories, services } = data
+    const { destinations, hotels, rooms, inventory, reviews, categories, services } = data
     const availability = inventory.map(row => ({ roomId: row.roomId, date: row.date, ...inventoryView(data, row.roomId, row.date) }))
-    return { destinations, hotels, rooms, inventory, availability, restaurants, reviews, categories, services }
+    return { destinations, hotels, rooms, inventory, availability, reviews, categories, services }
   },
   touristData: async (userId: string) => {
     const { users, preferences, trips, stops, activities, bookings, payments, refunds, reviews, favorites } = readData()
@@ -130,7 +130,6 @@ export const mock = {
     const items = [
       ...data.destinations.map(x => ({ id: x.id, type: 'destination' as const, name: x.name, city: x.city, price: x.price, tags: x.tags, description: x.description })),
       ...data.hotels.map(x => ({ id: x.id, type: 'hotel' as const, name: x.name, city: x.city, price: data.rooms.find(r => r.hotelId === x.id)?.basePrice ?? 0, tags: x.amenities, description: x.description })),
-      ...data.restaurants.map(x => ({ id: x.id, type: 'restaurant' as const, name: x.name, city: x.city, price: x.price, tags: [x.cuisine], description: x.description })),
     ]
     return items.map(item => {
       const searchable = (item.name + ' ' + item.city + ' ' + item.tags.join(' ')).toLowerCase()

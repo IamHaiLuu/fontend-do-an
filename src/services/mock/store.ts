@@ -15,6 +15,18 @@ export function readData(): AppData {
     if (data.version === 2) { data = mergeSeedExtras(data); changed = true }
     else if (data.version !== 3) { data = seedData(); changed = true }
   } catch { data = seedData(); changed = true }
+  const legacyData = data as AppData & { restaurants?: Array<{ id: string }> }
+  if (legacyData.restaurants) {
+    const removedIds = new Set(legacyData.restaurants.map(item => item.id))
+    for (const [userId, favorites] of Object.entries(data.favorites)) data.favorites[userId] = favorites.filter(id => !removedIds.has(id))
+    delete legacyData.restaurants
+    changed = true
+  }
+  const categoryCount = data.categories.length
+  const serviceCount = data.services.length
+  data.categories = data.categories.filter(category => category.id !== 'cat-food')
+  data.services = data.services.filter(service => service.categoryId !== 'cat-food')
+  if (data.categories.length !== categoryCount || data.services.length !== serviceCount) changed = true
   const now = Date.now()
   for (const booking of data.bookings) {
     if (booking.status === 'PENDING_PAYMENT' && new Date(booking.holdExpiresAt).getTime() <= now) {

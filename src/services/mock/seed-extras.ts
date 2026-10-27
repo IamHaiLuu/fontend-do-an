@@ -1,7 +1,7 @@
 import type { AppData, CancellationTerms, RoomInventory } from '@/types/domain'
 import { todayPlus } from '@/lib/utils'
 
-type ExtraSeed = Pick<AppData, 'destinations' | 'hotels' | 'rooms' | 'inventory' | 'restaurants' | 'trips' | 'stops' | 'activities' | 'bookings' | 'payments' | 'refunds' | 'reviews' | 'partners' | 'services' | 'settlements' | 'favorites'>
+type ExtraSeed = Pick<AppData, 'destinations' | 'hotels' | 'rooms' | 'inventory' | 'trips' | 'stops' | 'activities' | 'bookings' | 'payments' | 'refunds' | 'reviews' | 'partners' | 'services' | 'settlements' | 'favorites'>
 
 const cancellationPolicy = 'Miễn phí khi hủy trước nhận phòng ít nhất 24 giờ; sau đó phí 50%.'
 const cancellationTerms: CancellationTerms = { freeUntilHours: 24, lateFeeRate: 0.5, checkInHour: 14 }
@@ -48,23 +48,14 @@ export function createSeedExtras(): ExtraSeed {
       { id: 'lantern-house', name: 'Lantern House Hội An', city: 'Quảng Nam', area: 'Hội An', address: '9 Nguyễn Duy Hiệu, Hội An, Quảng Nam', description: 'Khách sạn demo yên tĩnh, thuận tiện đi bộ vào phố cổ.', stars: 3, rating: 4.4, amenities: ['Wi-Fi', 'Sân vườn', 'Gần trung tâm'], partnerId: 'partner-river', cancellationPolicy, cancellationTerms: { ...cancellationTerms } },
     ],
     rooms: [
-      { id: 'room-sunrise-standard', hotelId: 'sunrise-danang', name: 'Ocean Standard', description: 'Phòng đôi sáng thoáng hướng biển.', capacity: 2, area: 32, bed: '1 giường đôi', basePrice: 1800000, amenities: ['Wi-Fi', 'TV', 'Điều hòa', 'Bữa sáng'] },
-      { id: 'room-sunrise-suite', hotelId: 'sunrise-danang', name: 'Sunrise Suite', description: 'Suite rộng có khu vực tiếp khách.', capacity: 4, area: 55, bed: '2 giường đôi', basePrice: 2700000, amenities: ['Wi-Fi', 'TV', 'Điều hòa', 'Bồn tắm'] },
-      { id: 'room-lotus-classic', hotelId: 'lotus-hue', name: 'Classic River', description: 'Phòng đôi nhìn về trung tâm thành phố.', capacity: 2, area: 28, bed: '1 giường đôi', basePrice: 1050000, amenities: ['Wi-Fi', 'TV', 'Điều hòa'] },
-      { id: 'room-pine-balcony', hotelId: 'pine-valley', name: 'Pine Balcony', description: 'Phòng đôi có ban công nhìn ra khu vườn.', capacity: 2, area: 30, bed: '1 giường đôi', basePrice: 1300000, amenities: ['Wi-Fi', 'Máy sưởi', 'Ban công'] },
-      { id: 'room-bay-view', hotelId: 'bay-breeze', name: 'Bay View', description: 'Phòng đôi tiện nghi cho kỳ nghỉ ven biển.', capacity: 2, area: 31, bed: '1 giường đôi', basePrice: 1550000, amenities: ['Wi-Fi', 'TV', 'Điều hòa'] },
-      { id: 'room-lantern-garden', hotelId: 'lantern-house', name: 'Garden Room', description: 'Phòng đôi yên tĩnh nhìn ra sân vườn.', capacity: 2, area: 27, bed: '1 giường đôi', basePrice: 850000, amenities: ['Wi-Fi', 'Điều hòa', 'Sân vườn'] },
+      { id: 'room-sunrise-standard', hotelId: 'sunrise-danang', name: 'Ocean Standard', description: 'Phòng đôi sáng thoáng hướng biển.', capacity: 2, area: 32, bed: '1 giường đôi', basePrice: 1800000, amenities: ['Wi-Fi', 'TV', 'Điều hòa', 'Bữa sáng'], image: '/images/room-deluxe.png' },
+      { id: 'room-sunrise-suite', hotelId: 'sunrise-danang', name: 'Sunrise Suite', description: 'Suite rộng có khu vực tiếp khách.', capacity: 4, area: 55, bed: '2 giường đôi', basePrice: 2700000, amenities: ['Wi-Fi', 'TV', 'Điều hòa', 'Bồn tắm'], image: '/images/room-family-suite.png' },
+      { id: 'room-lotus-classic', hotelId: 'lotus-hue', name: 'Classic River', description: 'Phòng đôi nhìn về trung tâm thành phố.', capacity: 2, area: 28, bed: '1 giường đôi', basePrice: 1050000, amenities: ['Wi-Fi', 'TV', 'Điều hòa'], image: '/images/room-river-view.png' },
+      { id: 'room-pine-balcony', hotelId: 'pine-valley', name: 'Pine Balcony', description: 'Phòng đôi có ban công nhìn ra khu vườn.', capacity: 2, area: 30, bed: '1 giường đôi', basePrice: 1300000, amenities: ['Wi-Fi', 'Máy sưởi', 'Ban công'], image: '/images/room-garden-view.png' },
+      { id: 'room-bay-view', hotelId: 'bay-breeze', name: 'Bay View', description: 'Phòng đôi tiện nghi cho kỳ nghỉ ven biển.', capacity: 2, area: 31, bed: '1 giường đôi', basePrice: 1550000, amenities: ['Wi-Fi', 'TV', 'Điều hòa'], image: '/images/room-deluxe.png' },
+      { id: 'room-lantern-garden', hotelId: 'lantern-house', name: 'Garden Room', description: 'Phòng đôi yên tĩnh nhìn ra sân vườn.', capacity: 2, area: 27, bed: '1 giường đôi', basePrice: 850000, amenities: ['Wi-Fi', 'Điều hòa', 'Sân vườn'], image: '/images/room-garden-view.png' },
     ],
     inventory,
-    restaurants: [
-      { id: 'bep-song-han', name: 'Bếp Sông Hàn', city: 'Đà Nẵng', area: 'Hải Châu', cuisine: 'Món Việt', description: 'Nhà hàng demo phục vụ cơm và món địa phương.', price: 160000, openingHours: '10:00–21:00', rating: 4.4 },
-      { id: 'banh-trang-cu-quang', name: 'Góc Quảng', city: 'Đà Nẵng', area: 'Thanh Khê', cuisine: 'Món địa phương', description: 'Quán demo với các món ăn nhẹ miền Trung.', price: 85000, openingHours: '08:00–20:00', rating: 4.3 },
-      { id: 'bep-thong-xanh', name: 'Bếp Thông Xanh', city: 'Đà Lạt', area: 'Trung tâm', cuisine: 'Món Việt', description: 'Không gian demo ấm cúng với thực đơn theo mùa.', price: 180000, openingHours: '10:00–22:00', rating: 4.5 },
-      { id: 'quan-gao-hoian', name: 'Quán Gạo Hội An', city: 'Quảng Nam', area: 'Hội An', cuisine: 'Món địa phương', description: 'Quán demo phục vụ món cơm và rau địa phương.', price: 120000, openingHours: '09:00–21:00', rating: 4.4 },
-      { id: 'com-nha-xu-hue', name: 'Cơm Nhà Xứ Huế', city: 'Huế', area: 'Phú Hội', cuisine: 'Món Huế', description: 'Bữa cơm gia đình trong không gian demo gần trung tâm.', price: 110000, openingHours: '10:00–21:00', rating: 4.5 },
-      { id: 'bun-bo-pho-cu', name: 'Bún Bò Phố Cũ', city: 'Huế', area: 'Phú Nhuận', cuisine: 'Món Huế', description: 'Quán demo chuyên món bún bò và món ăn sáng.', price: 75000, openingHours: '06:30–14:00', rating: 4.4 },
-      { id: 'bep-bien-xanh', name: 'Bếp Biển Xanh', city: 'Nha Trang', area: 'Lộc Thọ', cuisine: 'Hải sản', description: 'Nhà hàng demo với thực đơn hải sản và món nướng.', price: 220000, openingHours: '11:00–22:00', rating: 4.5 },
-    ],
     trips: [
       { id: 'trip-hue-demo', userId: 'user-tourist', name: 'Cuối tuần ở Huế', city: 'Huế', startDate: todayPlus(18), endDate: todayPlus(20), adults: 2, children: 0, budget: 5500000, note: 'Ưu tiên di tích và ẩm thực Huế', source: 'manual', status: 'SAVED' },
       { id: 'trip-dalat-demo', userId: 'user-tourist', name: 'Nghỉ dưỡng Đà Lạt', city: 'Đà Lạt', startDate: todayPlus(32), endDate: todayPlus(34), adults: 2, children: 0, budget: 7000000, note: 'Đi nhẹ, nhiều thời gian nghỉ', source: 'manual', status: 'SAVED' },
@@ -104,7 +95,6 @@ export function createSeedExtras(): ExtraSeed {
       { id: 'service-pine', name: 'Pine Valley Đà Lạt', categoryId: 'cat-hotel', partnerId: 'partner-river', city: 'Đà Lạt', price: 1300000, active: true },
       { id: 'service-bay', name: 'Bay Breeze Nha Trang', categoryId: 'cat-hotel', partnerId: 'partner-bay', city: 'Nha Trang', price: 1550000, active: true },
       { id: 'service-lantern', name: 'Lantern House Hội An', categoryId: 'cat-hotel', partnerId: 'partner-river', city: 'Quảng Nam', price: 850000, active: true },
-      { id: 'service-hue-food', name: 'Cơm Nhà Xứ Huế', categoryId: 'cat-food', partnerId: 'partner-lotus', city: 'Huế', price: 110000, active: true },
     ],
     settlements: [{ id: 'SET-DEMO-002', partnerId: 'partner-lotus', hotelId: 'lotus-hue', periodStart: todayPlus(-25), periodEnd: todayPlus(-12), bookingIds: ['BK-DEMO-002'], gross: 2100000, commission: 210000, adjustment: 0, net: 1890000, status: 'DRAFT', revision: 1 }],
     favorites: { 'user-tourist': ['kinh-thanh-hue', 'lotus-hue', 'ho-tuyen-lam'] },
@@ -121,7 +111,6 @@ export function mergeSeedExtras(data: AppData): AppData {
   appendMissing(data.destinations, extra.destinations)
   appendMissing(data.hotels, extra.hotels)
   appendMissing(data.rooms, extra.rooms)
-  appendMissing(data.restaurants, extra.restaurants)
   appendMissing(data.trips, extra.trips)
   appendMissing(data.stops, extra.stops)
   appendMissing(data.activities, extra.activities)

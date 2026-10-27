@@ -10,8 +10,10 @@ it('seed bổ sung có đủ quan hệ và tồn phòng cho các khách sạn m�
   expect(data.version).toBe(3)
   expect(data.destinations.length).toBeGreaterThanOrEqual(20)
   expect(data.hotels.length).toBeGreaterThanOrEqual(8)
-  expect(data.restaurants.length).toBeGreaterThanOrEqual(10)
-  for (const collection of [data.destinations, data.hotels, data.rooms, data.restaurants, data.trips, data.bookings, data.partners, data.services, data.settlements]) {
+  expect(data).not.toHaveProperty('restaurants')
+  expect(data.categories.some(category => category.id === 'cat-food')).toBe(false)
+  expect(data.services.some(service => service.categoryId === 'cat-food')).toBe(false)
+  for (const collection of [data.destinations, data.hotels, data.rooms, data.trips, data.bookings, data.partners, data.services, data.settlements]) {
     expect(new Set(collection.map(item => item.id)).size).toBe(collection.length)
   }
   for (const hotel of data.hotels) expect(data.partners.some(partner => partner.id === hotel.partnerId && partner.hotelIds.includes(hotel.id))).toBe(true)
