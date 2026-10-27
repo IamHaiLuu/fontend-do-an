@@ -4,7 +4,6 @@
 | --- | --- | --- | --- |
 | Công khai | /, /explore, /explore/:id | Trang chủ, tìm và xem điểm đến; UC06 | Demo |
 | Công khai | /hotels, /hotels/:id | Tìm, lọc, xem khách sạn/phòng; UC07 | Demo |
-| Công khai | /restaurants, /restaurants/:id | Tìm, lọc, xem nhà hàng | Demo |
 | Công khai | /ai/recommendations, /ai/trip-planner | Gợi ý và lịch trình theo quy tắc demo | Demo |
 | Công khai | /auth/login, /auth/register, /auth/verify-otp, /auth/forgot-password, /auth/reset-password | UC01–03, OTP demo | Demo |
 | Du khách | /profile, /preferences, /favorites | UC04–05, hồ sơ/sở thích/yêu thích | Demo |

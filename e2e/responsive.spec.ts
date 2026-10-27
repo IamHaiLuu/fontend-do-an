@@ -12,7 +12,7 @@ async function expectNoPageOverflow(page: import('@playwright/test').Page, path:
 test('các trang chính dùng được ở 360px', async ({ page }) => {
   await page.goto('/')
   await page.evaluate(() => { localStorage.clear(); sessionStorage.clear() })
-  for (const path of ['/', '/explore', '/hotels', '/hotels/sea-garden', '/restaurants', '/ai/trip-planner']) {
+  for (const path of ['/', '/explore', '/hotels', '/hotels/sea-garden', '/ai/trip-planner']) {
     await expectNoPageOverflow(page, path)
   }
 

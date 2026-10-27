@@ -8,7 +8,7 @@ import { errorMessage } from '@/lib/utils'
 
 const publicNav = [
   { to: '/', label: 'Trang chủ' }, { to: '/explore', label: 'Khám phá' }, { to: '/hotels', label: 'Khách sạn' },
-  { to: '/restaurants', label: 'Nhà hàng' }, { to: '/trips', label: 'Chuyến đi' }, { to: '/ai/recommendations', label: 'Gợi ý AI' },
+  { to: '/trips', label: 'Chuyến đi' }, { to: '/ai/recommendations', label: 'Gợi ý AI' },
 ]
 const partnerNav = [{ to: '/partner', label: 'Tổng quan', icon: LayoutDashboard }, { to: '/partner/rooms', label: 'Loại phòng', icon: Hotel }]
 const adminNav = [
@@ -34,7 +34,7 @@ export function TouristLayout() {
     </div>{menuOpen && <nav aria-label="Điều hướng trên điện thoại" className="container-travel grid gap-1 border-t border-slate-100 py-3 xl:hidden">{[...publicNav, { to: '/favorites', label: 'Yêu thích' }, { to: user ? user.role === 'admin' ? '/admin' : user.role === 'partner' ? '/partner' : '/profile' : '/auth/login', label: user ? 'Tài khoản' : 'Đăng nhập' }].map(n => <Link className="rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-slate-50" key={n.to} onClick={() => setMenuOpen(false)} to={n.to}>{n.label}</Link>)}</nav>}</header>
     {isMock && <div className="border-b border-amber-100 bg-amber-50 px-4 py-1.5 text-center text-xs text-amber-900">Chế độ demo: AI, OTP và thanh toán chỉ là mô phỏng. <button className="font-semibold underline" onClick={async () => { try { await repo.reset(); setNotice('Đã đặt lại dữ liệu demo.'); logout(); navigate('/') } catch (e) { setNotice(errorMessage(e)) } }}>Đặt lại dữ liệu</button>{notice && <span className="ml-2">{notice}</span>}</div>}
     <main id="main" className="flex-1"><Outlet /></main>
-    <footer className="border-t border-slate-200 bg-[#F8FAFC]"><div className="container-travel grid gap-8 py-10 md:grid-cols-3"><div><Brand /><p className="mt-3 max-w-xs text-sm text-slate-500">Lên kế hoạch chuyến đi rõ ràng, phù hợp với sở thích của bạn.</p></div><div><h2 className="font-semibold">Khám phá</h2><div className="mt-3 grid gap-2 text-sm text-slate-600"><Link to="/explore">Điểm đến</Link><Link to="/hotels">Khách sạn</Link><Link to="/restaurants">Nhà hàng</Link></div></div><div><h2 className="font-semibold">Lên kế hoạch</h2><div className="mt-3 grid gap-2 text-sm text-slate-600"><Link to="/ai/trip-planner">Lập lịch trình demo</Link><Link to="/trips">Chuyến đi của tôi</Link></div></div></div><div className="border-t border-slate-200 py-4 text-center text-xs text-slate-500">© Hành Trình Việt · Dự án frontend demo</div></footer>
+    <footer className="border-t border-slate-200 bg-[#F8FAFC]"><div className="container-travel grid gap-8 py-10 md:grid-cols-3"><div><Brand /><p className="mt-3 max-w-xs text-sm text-slate-500">Lên kế hoạch chuyến đi rõ ràng, phù hợp với sở thích của bạn.</p></div><div><h2 className="font-semibold">Khám phá</h2><div className="mt-3 grid gap-2 text-sm text-slate-600"><Link to="/explore">Điểm đến</Link><Link to="/hotels">Khách sạn</Link></div></div><div><h2 className="font-semibold">Lên kế hoạch</h2><div className="mt-3 grid gap-2 text-sm text-slate-600"><Link to="/ai/trip-planner">Lập lịch trình demo</Link><Link to="/trips">Chuyến đi của tôi</Link></div></div></div><div className="border-t border-slate-200 py-4 text-center text-xs text-slate-500">© Hành Trình Việt · Dự án frontend demo</div></footer>
   </div>
 }
 

@@ -12,8 +12,25 @@ test('khám phá, tìm khách sạn và giữ bộ lọc khi xem chi tiết', as
   await expect(page.getByRole('heading', { name: 'Tìm khách sạn' })).toBeVisible()
   await page.locator('a[href*="/hotels/sea-garden"]').click()
   await expect(page.getByText('Sea Garden Hotel').first()).toBeVisible()
+  await expect(page.getByRole('img', { name: 'Ảnh minh họa Deluxe Double' })).toBeVisible()
   await page.getByRole('link', { name: 'Quay lại kết quả tìm kiếm' }).click()
   await expect(page).toHaveURL(/city=/)
+})
+
+test('bộ chọn ngày và khách phòng hoạt động trong thanh tìm kiếm', async ({ page }) => {
+  await page.getByRole('button', { name: 'Ngày nhận phòng và trả phòng' }).click()
+  const dateDialog = page.getByRole('dialog', { name: 'Chọn ngày nhận phòng và trả phòng' })
+  await expect(dateDialog).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Tháng sau' })).toBeVisible()
+  await dateDialog.getByRole('button', { name: 'Xong' }).click()
+
+  await page.getByRole('button', { name: 'Khách và Phòng' }).click()
+  const guestDialog = page.getByRole('dialog', { name: 'Chọn số khách và phòng' })
+  await guestDialog.getByRole('button', { name: 'Tăng người lớn' }).click()
+  await guestDialog.getByRole('button', { name: 'Tăng trẻ em' }).click()
+  await expect(guestDialog.getByLabel('Tuổi trẻ em 1')).toBeVisible()
+  await guestDialog.getByRole('button', { name: 'Xong' }).click()
+  await expect(page.getByRole('button', { name: 'Khách và Phòng' })).toContainText('3 người lớn, 1 trẻ em, 1 phòng')
 })
 
 test('lọc khách sạn theo sao và giá, hiển thị trạng thái rỗng', async ({ page }) => {
@@ -36,6 +53,8 @@ test('router chặn sai vai trò và có trang 404', async ({ page }) => {
   await page.goto('/partner')
   await expect(page).toHaveURL(/\/403$/)
   await page.goto('/trang-khong-ton-tai')
+  await expect(page.getByRole('heading', { name: /Không tìm thấy trang/ })).toBeVisible()
+  await page.goto('/restaurants')
   await expect(page.getByRole('heading', { name: /Không tìm thấy trang/ })).toBeVisible()
 })
 

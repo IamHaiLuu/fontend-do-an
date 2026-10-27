@@ -10,8 +10,6 @@ const Explore = lazy(() => import('@/features/public/catalog').then(m => ({ defa
 const DestinationDetail = lazy(() => import('@/features/public/catalog').then(m => ({ default: m.DestinationDetailPage })))
 const Hotels = lazy(() => import('@/features/public/catalog').then(m => ({ default: m.HotelsPage })))
 const HotelDetail = lazy(() => import('@/features/public/catalog').then(m => ({ default: m.HotelDetailPage })))
-const Restaurants = lazy(() => import('@/features/public/catalog').then(m => ({ default: m.RestaurantsPage })))
-const RestaurantDetail = lazy(() => import('@/features/public/catalog').then(m => ({ default: m.RestaurantDetailPage })))
 const Profile = lazy(() => import('@/features/public/account').then(m => ({ default: m.ProfilePage })))
 const Preferences = lazy(() => import('@/features/public/account').then(m => ({ default: m.PreferencesPage })))
 const Favorites = lazy(() => import('@/features/public/account').then(m => ({ default: m.FavoritesPage })))
@@ -58,7 +56,6 @@ export function AppRouter() {
       <Route index element={<Home />} />
       <Route path="/explore" element={<Explore />} /><Route path="/explore/:id" element={<DestinationDetail />} />
       <Route path="/hotels" element={<Hotels />} /><Route path="/hotels/:id" element={<HotelDetail />} />
-      <Route path="/restaurants" element={<Restaurants />} /><Route path="/restaurants/:id" element={<RestaurantDetail />} />
       <Route path="/ai/recommendations" element={<Recommendations />} /><Route path="/ai/trip-planner" element={<Planner />} />
       <Route element={<Guard role="tourist" />}>
         <Route path="/profile" element={<Profile />} /><Route path="/preferences" element={<Preferences />} /><Route path="/favorites" element={<Favorites />} />

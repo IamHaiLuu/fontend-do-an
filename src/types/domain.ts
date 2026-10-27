@@ -13,7 +13,6 @@ export interface CancellationTerms { freeUntilHours: number; lateFeeRate: number
 export interface Hotel { id: string; name: string; city: string; area: string; address: string; description: string; stars: number; rating?: number; amenities: string[]; image?: string; partnerId: string; cancellationPolicy: string; cancellationTerms: CancellationTerms }
 export interface RoomType { id: string; hotelId: string; name: string; description: string; capacity: number; area: number; bed: string; basePrice: number; amenities: string[]; image?: string }
 export interface RoomInventory { roomId: string; date: string; offered: number; price: number; revision: number }
-export interface Restaurant { id: string; name: string; city: string; area: string; cuisine: string; description: string; price: number; openingHours: string; rating?: number; image?: string }
 export interface TravelActivity { id: string; stopId: string; name: string; start: string; end: string; placeId?: string; note: string; cost: number }
 export interface Stopover { id: string; tripId: string; placeId?: string; name: string; address: string; start: string; end: string; order: number; note: string }
 export interface Itinerary { id: string; userId: string; name: string; city: string; startDate: string; endDate: string; adults: number; children: number; budget: number; note: string; source: 'manual' | 'demo-planner'; status: 'DRAFT' | 'SAVED' }
@@ -34,7 +33,6 @@ export interface AppData {
   hotels: Hotel[]
   rooms: RoomType[]
   inventory: RoomInventory[]
-  restaurants: Restaurant[]
   trips: Itinerary[]
   stops: Stopover[]
   activities: TravelActivity[]
