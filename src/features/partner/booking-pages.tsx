@@ -1,0 +1,55 @@
+import { useState } from 'react'
+import { Link, useParams, useSearchParams } from 'react-router'
+import { Eye, UsersRound } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Card, EmptyState, ErrorState, StatusBadge } from '@/components/common'
+import { useScopedPartnerData } from '@/hooks/data'
+import { addDay, currency, day, dateTime, errorMessage, formatStatus, nights, todayPlus } from '@/lib/utils'
+import { bookingUsesRoom } from '@/lib/rooms'
+import { AdminPageHeader, DataTable, DetailSection, InfoItem, LoadingSkeleton, Pagination, SearchFilterBar } from '@/features/admin/admin-ui'
+
+const PAGE_SIZE = 8
+
+export function PartnerBookingsPage({ history = false }: { history?: boolean }) {
+  const { data, isLoading, error } = useScopedPartnerData()
+  const [params, setParams] = useSearchParams()
+  const [page, setPage] = useState(1)
+  const query = (params.get('q') ?? '').toLowerCase()
+  const status = params.get('status') ?? ''
+  const paymentStatus = params.get('payment') ?? ''
+  if (isLoading) return <LoadingSkeleton />
+  if (error || !data) return <ErrorState message={errorMessage(error)} />
+  const update = (key: string, value: string) => { const next = new URLSearchParams(params); if (value) next.set(key, value); else next.delete(key); setPage(1); setParams(next) }
+  const items = [...data.bookings].filter(booking => {
+    const payment = data.payments.find(item => item.bookingId === booking.id && item.status === 'PAID') ?? data.payments.find(item => item.bookingId === booking.id)
+    const matchesHistory = !history || ['COMPLETED', 'CANCELLED', 'EXPIRED'].includes(booking.status)
+    return matchesHistory && (!query || `${booking.id} ${booking.guestName}`.toLowerCase().includes(query)) && (!status || booking.status === status) && (!paymentStatus || payment?.status === paymentStatus)
+  }).sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+  const pageItems = items.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  return <div><AdminPageHeader eyebrow="Quản lý đặt phòng" title={history ? 'Lịch sử đặt phòng' : 'Đơn đặt phòng'} description={history ? 'Tra cứu các đơn đã hoàn tất, đã hủy hoặc hết hạn.' : 'Theo dõi các đơn và toàn bộ phòng vật lý được khách đặt.'} /><SearchFilterBar search={params.get('q') ?? ''} onSearch={value => update('q', value)} searchPlaceholder="Mã đơn hoặc tên khách hàng"><label className="min-w-44 text-sm font-medium">Trạng thái đơn<select value={status} onChange={event => update('status', event.target.value)}><option value="">Tất cả</option>{['PENDING_PAYMENT', 'CONFIRMED', 'COMPLETED', 'CANCELLED', 'EXPIRED'].map(item => <option key={item} value={item}>{formatStatus(item)}</option>)}</select></label><label className="min-w-44 text-sm font-medium">Thanh toán<select value={paymentStatus} onChange={event => update('payment', event.target.value)}><option value="">Tất cả</option>{['PENDING', 'PAID', 'FAILED', 'EXPIRED'].map(item => <option key={item} value={item}>{formatStatus(item)}</option>)}</select></label></SearchFilterBar><DataTable total={pageItems.length} emptyTitle="Không có đơn đặt phòng phù hợp"><table><thead><tr><th>Mã đơn</th><th>Khách du lịch</th><th>Ngày đặt</th><th>Nhận phòng</th><th>Trả phòng</th><th>Số phòng</th><th>Tổng tiền</th><th>Thanh toán</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody>{pageItems.map(booking => { const payment = data.payments.find(item => item.bookingId === booking.id && item.status === 'PAID') ?? data.payments.find(item => item.bookingId === booking.id); return <tr key={booking.id}><td className="font-semibold text-emerald-700">{booking.id}</td><td>{booking.guestName}</td><td>{dateTime(booking.createdAt)}</td><td>{day(booking.checkIn)}</td><td>{day(booking.checkOut)}</td><td>{booking.roomItems?.length ?? booking.rooms} phòng</td><td className="font-semibold">{currency(booking.total)}</td><td>{payment ? <StatusBadge status={payment.status} /> : '—'}</td><td><StatusBadge status={booking.status} /></td><td><Button asChild size="sm" variant="secondary"><Link to={`/partner/bookings/${booking.id}`}><Eye size={15} />Chi tiết</Link></Button></td></tr> })}</tbody></table></DataTable><Pagination page={page} totalPages={Math.max(1, Math.ceil(items.length / PAGE_SIZE))} total={items.length} onChange={setPage} /></div>
+}
+
+export function PartnerBookingDetailPage() {
+  const { id } = useParams()
+  const { data, isLoading, error } = useScopedPartnerData()
+  if (isLoading) return <LoadingSkeleton />
+  if (error || !data) return <ErrorState message={errorMessage(error)} />
+  const booking = data.bookings.find(item => item.id === id)
+  if (!booking) return <EmptyState title="Không tìm thấy đơn hoặc bạn không có quyền truy cập" description="Dữ liệu của khách sạn khác không được hiển thị." />
+  const hotel = data.hotels.find(item => item.id === booking.hotelId)
+  const attempts = data.payments.filter(item => item.bookingId === booking.id)
+  const payment = attempts.find(item => item.status === 'PAID') ?? attempts.at(-1)
+  const refund = data.refunds.find(item => item.bookingId === booking.id)
+  const roomItems = booking.roomItems ?? []
+  return <div><Link className="text-sm font-semibold text-emerald-700" to="/partner/bookings">← Danh sách đơn</Link><div className="mt-5"><AdminPageHeader title={`Đơn ${booking.id}`} description={`${hotel?.name} · tạo ${dateTime(booking.createdAt)}`} actions={<StatusBadge status={booking.status} />} /></div><div className="grid gap-5"><div className="grid gap-5 xl:grid-cols-2"><DetailSection title="Thông tin chung"><dl className="grid gap-5 sm:grid-cols-2"><InfoItem label="Khách sạn">{hotel?.name}</InfoItem><InfoItem label="Ngày đặt">{dateTime(booking.createdAt)}</InfoItem><InfoItem label="Ngày nhận phòng">{day(booking.checkIn)}</InfoItem><InfoItem label="Ngày trả phòng">{day(booking.checkOut)}</InfoItem><InfoItem label="Số đêm">{nights(booking.checkIn, booking.checkOut)}</InfoItem><InfoItem label="Số lượng phòng">{roomItems.length || booking.rooms}</InfoItem></dl></DetailSection><DetailSection title="Thông tin khách đặt" description="Chỉ sử dụng để phục vụ lưu trú."><dl className="grid gap-5 sm:grid-cols-2"><InfoItem label="Họ tên">{booking.guestName}</InfoItem><InfoItem label="Số điện thoại">{booking.guestPhone}</InfoItem><InfoItem label="Email">{booking.guestEmail}</InfoItem><InfoItem label="Số khách"><span className="inline-flex items-center gap-2"><UsersRound size={16} />{booking.adults} người lớn, {booking.children} trẻ em</span></InfoItem><InfoItem label="Yêu cầu đặc biệt">{booking.specialRequest || 'Không có'}</InfoItem></dl></DetailSection></div><DetailSection title="Danh sách phòng trong đơn" description="Đơn giá là giá đã được ghi nhận tại thời điểm đặt."><div className="table-scroll"><table><thead><tr><th>Số phòng</th><th>Mã phòng</th><th>Giá/đêm</th><th>Số đêm</th><th>Thành tiền</th></tr></thead><tbody>{roomItems.map(item => <tr key={item.roomId}><td className="font-semibold">Phòng {item.roomNumber}</td><td className="font-mono text-xs">{item.roomId}</td><td>{currency(item.nightlyPrice)}</td><td>{item.nights}</td><td className="font-semibold">{currency(item.subtotal)}</td></tr>)}</tbody><tfoot><tr><td colSpan={3}><strong>Tổng cộng</strong></td><td>{roomItems.length} phòng</td><td><strong className="text-emerald-700">{currency(booking.total)}</strong></td></tr></tfoot></table></div></DetailSection><div className="grid gap-5 xl:grid-cols-2"><DetailSection title="Thanh toán" description="Chủ khách sạn chỉ được xem, không thể sửa trạng thái hoặc số tiền."><dl className="grid gap-5 sm:grid-cols-2"><InfoItem label="Tổng tiền">{currency(booking.total)}</InfoItem><InfoItem label="Trạng thái">{payment ? <StatusBadge status={payment.status} /> : 'Chưa có giao dịch'}</InfoItem><InfoItem label="Phương thức">{payment?.method}</InfoItem><InfoItem label="Thời gian xác nhận">{payment?.completedAt ? dateTime(payment.completedAt) : 'Chưa xác nhận'}</InfoItem><InfoItem label="Mã giao dịch">{payment?.reference}</InfoItem><InfoItem label="Số lần thử">{attempts.length}</InfoItem></dl></DetailSection><DetailSection title="Thông tin hủy và hoàn tiền"><dl className="grid gap-5 sm:grid-cols-2"><InfoItem label="Trạng thái hủy">{booking.status === 'CANCELLED' ? 'Đã hủy toàn bộ đơn' : 'Chưa hủy'}</InfoItem><InfoItem label="Thời điểm hủy">{booking.cancelledAt ? dateTime(booking.cancelledAt) : '—'}</InfoItem><InfoItem label="Lý do">{booking.cancellationReason ?? 'Không có'}</InfoItem><InfoItem label="Số tiền hoàn">{refund ? currency(refund.amount) : 'Không có'}</InfoItem><InfoItem label="Trạng thái hoàn">{refund ? <StatusBadge status={refund.status} /> : '—'}</InfoItem><InfoItem label="Chính sách áp dụng">{booking.policySnapshot}</InfoItem></dl></DetailSection></div></div></div>
+}
+
+export function PartnerBookingCalendarPage() {
+  const { data, isLoading, error } = useScopedPartnerData()
+  const [start, setStart] = useState(todayPlus(0))
+  if (isLoading) return <LoadingSkeleton />
+  if (error || !data) return <ErrorState message={errorMessage(error)} />
+  const dates = Array.from({ length: 14 }, (_, index) => addDay(start, index))
+  const bookingFor = (roomId: string, date: string) => data.bookings.find(booking => ['PENDING_PAYMENT', 'CONFIRMED'].includes(booking.status) && booking.checkIn <= date && date < booking.checkOut && bookingUsesRoom(booking, roomId))
+  return <div><AdminPageHeader eyebrow="Quản lý đặt phòng" title="Lịch đặt phòng" description="Theo dõi trạng thái từng phòng vật lý; ngày trả phòng không được tính là một đêm lưu trú." /><Card className="mb-5 max-w-sm p-4"><label className="text-sm font-medium">Bắt đầu từ ngày<input type="date" value={start} onChange={event => setStart(event.target.value)} /></label></Card><Card className="overflow-hidden"><div className="table-scroll"><table className="min-w-[1500px]"><thead><tr><th className="sticky left-0 z-10 bg-slate-50">Phòng</th>{dates.map(date => <th key={date}>{day(date).slice(0, 5)}</th>)}</tr></thead><tbody>{data.rooms.map(room => <tr key={room.id}><td className="sticky left-0 z-10 bg-white"><strong>{room.roomNumber}</strong><span className="block text-xs text-slate-400">{room.name}</span></td>{dates.map(date => { const booking = bookingFor(room.id, date); return <td key={date} className="min-w-24 p-2">{booking ? <Link to={`/partner/bookings/${booking.id}`} className={`block rounded-lg px-2 py-2 text-xs font-semibold ${booking.status === 'CONFIRMED' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>{booking.guestName}<span className="mt-1 block font-normal">{booking.id}</span></Link> : <span className="block rounded-lg bg-slate-50 px-2 py-2 text-center text-xs text-slate-400">Trống</span>}</td> })}</tr>)}</tbody></table></div></Card><div className="mt-4 flex flex-wrap gap-4 text-xs text-slate-600"><span className="flex items-center gap-2"><i className="h-3 w-3 rounded bg-emerald-100" />Đã xác nhận</span><span className="flex items-center gap-2"><i className="h-3 w-3 rounded bg-amber-100" />Đang giữ</span><span className="flex items-center gap-2"><i className="h-3 w-3 rounded bg-slate-100" />Còn trống</span></div></div>
+}

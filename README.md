@@ -32,7 +32,7 @@ Mật khẩu chung: Demo@123. Nút chọn nhanh ở trang đăng nhập sẽ đi
 
 OTP đăng ký/đặt lại mật khẩu demo là 123456 và hiển thị công khai; không gửi email thật. Google OAuth bị vô hiệu hóa khi không có backend. Dữ liệu demo lưu ở localStorage, phiên đăng nhập và bản nháp lịch trình ở sessionStorage. Chọn **Đặt lại dữ liệu** trên thanh thông báo để khôi phục seed.
 
-Seed v3 có 22 điểm đến, 8 khách sạn, 10 loại phòng, 11 nhà hàng, cùng chuyến đi, booking, đánh giá và đối soát mẫu. Lần mở đầu sau khi nâng từ seed v2 sẽ thêm các bản ghi mới vào localStorage mà giữ các bản ghi cũ đã chỉnh sửa. **Đặt lại dữ liệu** sẽ thay toàn bộ dữ liệu demo bằng seed mới.
+Seed v3 có 22 điểm đến, 8 khách sạn, 10 loại phòng, cùng chuyến đi, booking, đánh giá và đối soát mẫu. Lần mở đầu sau khi nâng từ seed v2 sẽ thêm các bản ghi mới vào localStorage mà giữ các bản ghi cũ đã chỉnh sửa. **Đặt lại dữ liệu** sẽ thay toàn bộ dữ liệu demo bằng seed mới.
 
 ## Cấu trúc
 
@@ -46,7 +46,7 @@ Seed v3 có 22 điểm đến, 8 khách sạn, 10 loại phòng, 11 nhà hàng, 
 
 ## Module
 
-Du khách có thể tìm kiếm điểm đến, khách sạn và nhà hàng; quản lý hồ sơ, sở thích, yêu thích; nhận gợi ý từ danh mục; tạo/lưu lịch trình demo hoặc quản lý lịch trình thủ công; đặt phòng, mô phỏng thanh toán, hủy, theo dõi hoàn tiền và đánh giá booking hoàn tất.
+Du khách có thể tìm kiếm điểm đến và khách sạn; quản lý hồ sơ, sở thích, yêu thích; nhận gợi ý từ danh mục; tạo/lưu lịch trình demo hoặc quản lý lịch trình thủ công; đặt phòng, mô phỏng thanh toán, hủy, theo dõi hoàn tiền và đánh giá booking hoàn tất.
 
 Đối tác quản lý loại phòng và lịch bán/giá theo ngày. Admin xác minh đối tác, quản lý danh mục/trạng thái dịch vụ, kiểm duyệt đánh giá, xem báo cáo, xử lý hoàn tiền demo và mô phỏng đối soát/chi trả.
 

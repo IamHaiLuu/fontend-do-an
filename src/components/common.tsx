@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { Link } from 'react-router'
 import { ArrowRight, Image as ImageIcon, LoaderCircle, SearchX } from 'lucide-react'
 import { cn } from '@/lib/cn'
@@ -12,6 +12,15 @@ export function Card({ children, className }: { children: ReactNode; className?:
 export function Picture({ label, src, className }: { label: string; src?: string; className?: string }) {
   return <div role={src ? undefined : 'img'} aria-label={src ? undefined : 'Chưa có ảnh minh họa ' + label} className={cn('relative flex aspect-[4/3] items-center justify-center overflow-hidden bg-[#EAF0F6] text-[#69809A]', className)}>
     {src ? <img src={src} alt={'Ảnh minh họa ' + label} loading="lazy" decoding="async" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" /> : <><div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_20%,#d3e4ed_0,transparent_38%),linear-gradient(145deg,#e8eff5,#dbe8e6)]" /><ImageIcon className="relative opacity-60" size={36} strokeWidth={1.3} /></>}
+  </div>
+}
+export function MediaGallery({ label, images, fallback, className }: { label: string; images?: string[]; fallback?: string; className?: string }) {
+  const sources = images?.filter(Boolean).length ? images.filter(Boolean) : fallback ? [fallback] : []
+  const [active, setActive] = useState(0)
+  const selected = sources[Math.min(active, Math.max(0, sources.length - 1))]
+  return <div className={cn('min-w-0', className)}>
+    <Picture label={label} src={selected} className="min-w-0 w-full rounded-2xl" />
+    {sources.length > 1 && <div className="mt-3 grid grid-cols-4 gap-2" aria-label={`Album ảnh ${label}`}>{sources.map((source, index) => <button key={`${source}-${index}`} type="button" aria-label={`Xem ảnh ${index + 1} của ${label}`} aria-pressed={index === active} onClick={() => setActive(index)} className={cn('overflow-hidden rounded-lg border-2', index === active ? 'border-sky-500' : 'border-transparent')}><Picture label={`${label} ${index + 1}`} src={source} className="aspect-[4/3]" /></button>)}</div>}
   </div>
 }
 export function EmptyState({ title = 'Chưa có dữ liệu', description, action }: { title?: string; description?: string; action?: ReactNode }) {

@@ -3,10 +3,10 @@ import { todayPlus } from '@/lib/utils'
 import { mergeSeedExtras } from './seed-extras'
 
 export const DEMO_PASSWORD = 'Demo@123'
-export const DEMO_CANCELLATION_TERMS = { freeUntilHours: 24, lateFeeRate: 0.5, checkInHour: 14 }
+export const DEMO_CANCELLATION_TERMS = { freeUntilHours: 24, lateFeeRate: 0.5, checkInHour: 14, rules: [{ hoursBeforeCheckIn: 24, refundRate: 1 }, { hoursBeforeCheckIn: 0, refundRate: 0.5 }] }
 export const demoAccounts = [
   { email: 'khach@demo.vn', role: 'Du khách' },
-  { email: 'doitac@demo.vn', role: 'Đối tác' },
+  { email: 'doitac@demo.vn', role: 'Chủ khách sạn' },
   { email: 'admin@demo.vn', role: 'Quản trị' },
 ] as const
 
@@ -38,24 +38,24 @@ export function seedData(): AppData {
       { id: 'ho-xuan-huong', name: 'Hồ Xuân Hương', city: 'Đà Lạt', region: 'Trung tâm', category: 'Thiên nhiên', description: 'Hồ nước giữa lòng Đà Lạt, phù hợp tản bộ và nghỉ ngơi.', tags: ['Thiên nhiên', 'Nghỉ dưỡng'], price: 0, openingHours: 'Cả ngày', rating: 4.6 },
       { id: 'thung-lung-tinh-yeu', name: 'Thung lũng Tình Yêu', city: 'Đà Lạt', region: 'Phường 8', category: 'Thiên nhiên', description: 'Không gian đồi thông và hồ nước với nhiều tuyến dạo bộ.', tags: ['Thiên nhiên', 'Gia đình'], price: 250000, openingHours: '07:00–17:00', rating: 4.4 },
     ],
+    topics: [
+      { id: 'topic-sea', name: 'Du lịch biển', description: 'Bãi biển và nghỉ dưỡng ven biển', active: true },
+      { id: 'topic-nature', name: 'Thiên nhiên', description: 'Cảnh quan, núi rừng và sinh thái', active: true },
+      { id: 'topic-culture', name: 'Văn hóa', description: 'Di sản, lịch sử và đời sống bản địa', active: true },
+      { id: 'topic-food', name: 'Ẩm thực', description: 'Trải nghiệm món ăn địa phương', active: true },
+    ],
     hotels: [
       { id: 'sea-garden', name: 'Sea Garden Hotel', city: 'Đà Nẵng', area: 'Sơn Trà', address: '68 Võ Nguyên Giáp, Sơn Trà, Đà Nẵng', description: 'Khách sạn ven biển với phòng nghỉ sáng thoáng, phù hợp chuyến đi nghỉ dưỡng.', stars: 4, rating: 4.7, amenities: ['Wi-Fi', 'Hồ bơi', 'Bữa sáng', 'Gần biển'], partnerId: 'partner-sea', cancellationPolicy: 'Miễn phí khi hủy trước nhận phòng ít nhất 24 giờ; sau đó phí 50%.', cancellationTerms: { ...DEMO_CANCELLATION_TERMS } },
       { id: 'river-light', name: 'River Light Hotel', city: 'Đà Nẵng', area: 'Hải Châu', address: '12 Bạch Đằng, Hải Châu, Đà Nẵng', description: 'Lưu trú thuận tiện bên sông Hàn, gần trung tâm và các điểm ăn uống.', stars: 3, rating: 4.4, amenities: ['Wi-Fi', 'Điều hòa', 'Gần trung tâm'], partnerId: 'partner-river', cancellationPolicy: 'Miễn phí khi hủy trước nhận phòng ít nhất 24 giờ; sau đó phí 50%.', cancellationTerms: { ...DEMO_CANCELLATION_TERMS } },
       { id: 'pine-house', name: 'Pine House Đà Lạt', city: 'Đà Lạt', area: 'Trung tâm', address: '25 Trần Hưng Đạo, Đà Lạt', description: 'Không gian yên tĩnh nhìn ra vườn thông, phù hợp nghỉ ngơi cuối tuần.', stars: 3, rating: 4.5, amenities: ['Wi-Fi', 'Sân vườn', 'Bữa sáng'], partnerId: 'partner-river', cancellationPolicy: 'Miễn phí khi hủy trước nhận phòng ít nhất 24 giờ; sau đó phí 50%.', cancellationTerms: { ...DEMO_CANCELLATION_TERMS } },
     ],
     rooms: [
-      { id: 'room-deluxe', hotelId: 'sea-garden', name: 'Deluxe Double', description: 'Phòng đôi có ban công hướng biển.', capacity: 2, area: 30, bed: '1 giường đôi', basePrice: 1200000, amenities: ['Wi-Fi', 'TV', 'Điều hòa', 'Ban công'] },
-      { id: 'room-family', hotelId: 'sea-garden', name: 'Family Suite', description: 'Không gian rộng cho gia đình.', capacity: 4, area: 48, bed: '2 giường đôi', basePrice: 2000000, amenities: ['Wi-Fi', 'TV', 'Điều hòa', 'Bồn tắm'] },
-      { id: 'room-river', hotelId: 'river-light', name: 'Superior River', description: 'Phòng hướng sông, đầy đủ tiện nghi.', capacity: 2, area: 26, bed: '1 giường đôi', basePrice: 900000, amenities: ['Wi-Fi', 'TV', 'Điều hòa'] },
-      { id: 'room-dalat', hotelId: 'pine-house', name: 'Garden Room', description: 'Phòng nhìn ra khu vườn thông.', capacity: 2, area: 28, bed: '1 giường đôi', basePrice: 1100000, amenities: ['Wi-Fi', 'Máy sưởi', 'Ban công'] },
+      { id: 'room-deluxe', hotelId: 'sea-garden', name: 'Deluxe Double', roomType: 'Deluxe', description: 'Phòng đôi có ban công hướng biển.', capacity: 2, area: 30, bed: '1 giường đôi', basePrice: 1200000, amenities: ['Wi-Fi', 'TV', 'Điều hòa', 'Ban công'], image: '/images/room-deluxe.png' },
+      { id: 'room-family', hotelId: 'sea-garden', name: 'Family Suite', roomType: 'Suite gia đình', description: 'Không gian rộng cho gia đình.', capacity: 4, area: 48, bed: '2 giường đôi', basePrice: 2000000, amenities: ['Wi-Fi', 'TV', 'Điều hòa', 'Bồn tắm'], image: '/images/room-family-suite.png' },
+      { id: 'room-river', hotelId: 'river-light', name: 'Superior River', roomType: 'Superior', description: 'Phòng hướng sông, đầy đủ tiện nghi.', capacity: 2, area: 26, bed: '1 giường đôi', basePrice: 900000, amenities: ['Wi-Fi', 'TV', 'Điều hòa'], image: '/images/room-river-view.png' },
+      { id: 'room-dalat', hotelId: 'pine-house', name: 'Garden Room', roomType: 'Phòng đôi', description: 'Phòng nhìn ra khu vườn thông.', capacity: 2, area: 28, bed: '1 giường đôi', basePrice: 1100000, amenities: ['Wi-Fi', 'Máy sưởi', 'Ban công'], image: '/images/room-garden-view.png' },
     ],
     inventory,
-    restaurants: [
-      { id: 'be-man', name: 'Hải sản Bé Mặn', city: 'Đà Nẵng', area: 'Sơn Trà', cuisine: 'Hải sản', description: 'Hải sản tươi, thực đơn phong phú gần bãi biển.', price: 300000, openingHours: '10:00–22:00', rating: 4.5 },
-      { id: 'my-quang-ba-mua', name: 'Mì Quảng Bà Mua', city: 'Đà Nẵng', area: 'Hải Châu', cuisine: 'Món địa phương', description: 'Mì Quảng với nhiều lựa chọn truyền thống.', price: 60000, openingHours: '06:30–21:00', rating: 4.6 },
-      { id: 'com-ga-ba-buoi', name: 'Cơm gà Bà Buội', city: 'Quảng Nam', area: 'Hội An', cuisine: 'Món địa phương', description: 'Quán cơm gà lâu năm trong khu phố cổ.', price: 80000, openingHours: '10:30–20:00', rating: 4.4 },
-      { id: 'nem-nuong-ba-hung', name: 'Nem nướng Bà Hùng', city: 'Đà Lạt', area: 'Trung tâm', cuisine: 'Món địa phương', description: 'Món nem nướng ăn cùng rau và nước chấm đặc trưng.', price: 90000, openingHours: '10:00–21:00', rating: 4.5 },
-    ],
     trips: [{ id: 'trip-demo', userId: 'user-tourist', name: 'Đà Nẵng cuối tuần', city: 'Đà Nẵng', startDate: todayPlus(10), endDate: todayPlus(12), adults: 2, children: 0, budget: 6000000, note: 'Ưu tiên biển và ẩm thực địa phương', source: 'manual', status: 'SAVED' }],
     stops: [{ id: 'stop-demo', tripId: 'trip-demo', placeId: 'my-khe', name: 'Bãi biển Mỹ Khê', address: 'Sơn Trà, Đà Nẵng', start: todayPlus(10) + 'T09:00', end: todayPlus(10) + 'T11:00', order: 1, note: '' }],
     activities: [{ id: 'activity-demo', stopId: 'stop-demo', name: 'Dạo biển và chụp ảnh', start: todayPlus(10) + 'T09:00', end: todayPlus(10) + 'T10:00', placeId: 'my-khe', note: '', cost: 0 }],
@@ -67,7 +67,7 @@ export function seedData(): AppData {
       { id: 'partner-sea', userId: 'user-partner', name: 'Công ty Sea Garden', email: 'doitac@demo.vn', type: 'Khách sạn', status: 'VERIFIED', hotelIds: ['sea-garden'], bankName: 'Vietcombank', bankLast4: '1234', commissionRate: 0.1, registeredAt: earlier, revision: 1 },
       { id: 'partner-river', userId: '', name: 'River Hospitality', email: 'river@example.vn', type: 'Khách sạn', status: 'PENDING', hotelIds: ['river-light', 'pine-house'], bankName: 'BIDV', bankLast4: '7865', commissionRate: 0.1, registeredAt: now, revision: 1 },
     ],
-    categories: [{ id: 'cat-hotel', name: 'Lưu trú', description: 'Khách sạn và nơi nghỉ', active: true }, { id: 'cat-food', name: 'Ẩm thực', description: 'Nhà hàng, quán ăn', active: true }, { id: 'cat-activity', name: 'Hoạt động', description: 'Trải nghiệm tại điểm đến', active: true }],
+    categories: [{ id: 'cat-hotel', name: 'Lưu trú', description: 'Khách sạn và nơi nghỉ', active: true }, { id: 'cat-activity', name: 'Hoạt động', description: 'Trải nghiệm tại điểm đến', active: true }],
     services: [{ id: 'service-sea', name: 'Sea Garden Hotel', categoryId: 'cat-hotel', partnerId: 'partner-sea', city: 'Đà Nẵng', price: 1200000, active: true }, { id: 'service-river', name: 'River Light Hotel', categoryId: 'cat-hotel', partnerId: 'partner-river', city: 'Đà Nẵng', price: 900000, active: true }],
     settlements: [{ id: 'SET-DEMO-001', partnerId: 'partner-sea', hotelId: 'sea-garden', periodStart: todayPlus(-30), periodEnd: todayPlus(-15), bookingIds: ['BK-DEMO-001'], gross: 2400000, commission: 240000, adjustment: 0, net: 2160000, status: 'DRAFT', revision: 1 }],
     favorites: { 'user-tourist': ['my-khe', 'sea-garden'] },

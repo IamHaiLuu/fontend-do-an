@@ -6,7 +6,7 @@
 
 | Method | Endpoint | Kết quả |
 | --- | --- | --- |
-| GET | /catalog | Điểm đến, khách sạn, loại phòng, khả dụng theo ngày, nhà hàng, đánh giá công khai, danh mục/dịch vụ |
+| GET | /catalog | Điểm đến, khách sạn, loại phòng, khả dụng theo ngày, đánh giá công khai, danh mục/dịch vụ |
 | GET | /users/:id/overview | Hồ sơ, sở thích, yêu thích, chuyến đi, booking/payment/refund/review của chủ tài khoản |
 | GET | /partners/by-user/:id/overview | Khách sạn, phòng, lịch phòng và booking thuộc đối tác |
 | GET | /admin/overview | Dữ liệu quản trị theo quyền |

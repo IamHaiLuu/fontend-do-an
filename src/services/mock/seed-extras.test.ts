@@ -10,8 +10,10 @@ it('seed bổ sung có đủ quan hệ và tồn phòng cho các khách sạn m�
   expect(data.version).toBe(3)
   expect(data.destinations.length).toBeGreaterThanOrEqual(20)
   expect(data.hotels.length).toBeGreaterThanOrEqual(8)
-  expect(data.restaurants.length).toBeGreaterThanOrEqual(10)
-  for (const collection of [data.destinations, data.hotels, data.rooms, data.restaurants, data.trips, data.bookings, data.partners, data.services, data.settlements]) {
+  expect(data).not.toHaveProperty('restaurants')
+  expect(data.categories.some(category => category.id === 'cat-food')).toBe(false)
+  expect(data.services.some(service => service.categoryId === 'cat-food')).toBe(false)
+  for (const collection of [data.destinations, data.hotels, data.rooms, data.trips, data.bookings, data.partners, data.services, data.settlements]) {
     expect(new Set(collection.map(item => item.id)).size).toBe(collection.length)
   }
   for (const hotel of data.hotels) expect(data.partners.some(partner => partner.id === hotel.partnerId && partner.hotelIds.includes(hotel.id))).toBe(true)
@@ -51,4 +53,12 @@ it('nâng cấp dữ liệu v2, giữ bản ghi đã sửa và không thêm trù
   expect(upgraded.rooms.filter(room => room.id === 'room-lotus-classic')).toHaveLength(1)
   expect(upgraded.inventory.some(row => row.roomId === 'room-lotus-classic' && row.date === todayPlus(7))).toBe(true)
   expect(readData().hotels.length).toBe(upgraded.hotels.length)
+})
+
+it('một chủ khách sạn quản lý nhiều khách sạn và mỗi khách sạn, phòng có album ảnh', () => {
+  const data = readData()
+  const owner = data.partners.find(partner => partner.userId === 'user-partner')
+  expect(owner?.hotelIds.length).toBeGreaterThan(1)
+  expect(data.hotels.filter(hotel => owner?.hotelIds.includes(hotel.id)).every(hotel => (hotel.images?.length ?? 0) > 1)).toBe(true)
+  expect(data.rooms.filter(room => owner?.hotelIds.includes(room.hotelId)).every(room => (room.images?.length ?? 0) > 1)).toBe(true)
 })
