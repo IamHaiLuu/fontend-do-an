@@ -11,7 +11,7 @@ test('dashboard Admin cân đối trên desktop rộng và mobile', async ({ pag
   await expect(page.getByRole('heading', { name: 'Tổng quan quản trị' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Booking theo trạng thái' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Booking gần đây' })).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Đối soát cần duyệt' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Chi trả cần duyệt' })).toBeVisible()
 
   for (const width of mobile ? [360] : [1440, 1920, 2560]) {
     await page.setViewportSize({ width, height: mobile ? 800 : 995 })
@@ -19,14 +19,15 @@ test('dashboard Admin cân đối trên desktop rộng và mobile', async ({ pag
       const aside = document.querySelector('aside')!.getBoundingClientRect()
       const main = document.querySelector('main')!.getBoundingClientRect()
       const header = document.querySelector('header > div')!.getBoundingClientRect()
-      return { viewport: innerWidth, scrollWidth: document.documentElement.scrollWidth, asideLeft: aside.left, mainRight: main.right, mainWidth: main.width, headerLeft: header.left, headerRight: header.right }
+      return { viewport: innerWidth, scrollWidth: document.documentElement.scrollWidth, asideLeft: aside.left, asideRight: aside.right, mainLeft: main.left, mainRight: main.right, mainWidth: main.width, headerLeft: header.left, headerRight: header.right }
     })
     expect(geometry.scrollWidth).toBeLessThanOrEqual(geometry.viewport + 1)
-    expect(Math.abs(geometry.headerLeft - geometry.asideLeft)).toBeLessThan(1)
+    expect(Math.abs(geometry.headerLeft - geometry.mainLeft)).toBeLessThan(1)
     expect(Math.abs(geometry.headerRight - geometry.mainRight)).toBeLessThan(1)
     if (!mobile) {
-      expect(geometry.asideLeft).toBeLessThanOrEqual(41)
-      expect(geometry.viewport - geometry.mainRight).toBeLessThanOrEqual(41)
+      expect(geometry.asideLeft).toBe(0)
+      expect(geometry.mainLeft).toBeGreaterThanOrEqual(geometry.asideRight - 1)
+      expect(geometry.viewport - geometry.mainRight).toBeLessThanOrEqual(1)
       expect(geometry.mainWidth).toBeGreaterThan(geometry.viewport * 0.75)
     }
   }

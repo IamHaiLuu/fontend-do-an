@@ -1,18 +1,27 @@
-import type { AppData, Booking, BookingInput, Itinerary, Payment, PlannerInput, PlannerResult, RoomType, Stopover, TravelActivity, TravelPreference, User } from '@/types/domain'
+import type { AppData, Booking, BookingInput, CancellationRule, Destination, Hotel, Itinerary, Payment, PlannerInput, PlannerResult, RoomType, Stopover, TravelActivity, TravelPreference, TravelTopic, User } from '@/types/domain'
 import { assert } from '@/lib/errors'
 import { addDay, nights, overlap, stayDays, todayPlus, uid } from '@/lib/utils'
 import { DEMO_PASSWORD } from './seed'
 import { cancellationQuote } from '@/lib/booking'
+import { normalizeAmenityName } from '@/lib/amenities'
+import { normalizeRoomNumber } from '@/lib/rooms'
 import { commit, readData } from './store'
 
 const activeHold = (b: Booking) => b.status === 'PENDING_PAYMENT' && Date.parse(b.holdExpiresAt) > Date.now()
-const soldOn = (data: AppData, roomId: string, date: string) => data.bookings.filter(b => b.roomId === roomId && b.checkIn <= date && date < b.checkOut && (b.status === 'CONFIRMED' || b.status === 'COMPLETED')).reduce((n, b) => n + b.rooms, 0)
-const heldOn = (data: AppData, roomId: string, date: string) => data.bookings.filter(b => b.roomId === roomId && b.checkIn <= date && date < b.checkOut && activeHold(b)).reduce((n, b) => n + b.rooms, 0)
+const roomUnits = (data: AppData, booking: Booking, roomId: string) => {
+  const exact = booking.roomItems?.filter(item => item.roomId === roomId).length ?? 0
+  if (exact) return exact
+  const hasPhysicalItems = booking.roomItems?.some(item => data.rooms.some(room => room.id === item.roomId))
+  return !hasPhysicalItems && booking.roomId === roomId ? booking.rooms : 0
+}
+const soldOn = (data: AppData, roomId: string, date: string) => data.bookings.filter(b => b.checkIn <= date && date < b.checkOut && (b.status === 'CONFIRMED' || b.status === 'COMPLETED')).reduce((n, b) => n + roomUnits(data, b, roomId), 0)
+const heldOn = (data: AppData, roomId: string, date: string) => data.bookings.filter(b => b.checkIn <= date && date < b.checkOut && activeHold(b)).reduce((n, b) => n + roomUnits(data, b, roomId), 0)
 export const inventoryView = (data: AppData, roomId: string, date: string) => {
   const row = data.inventory.find(i => i.roomId === roomId && i.date === date)
   const sold = soldOn(data, roomId, date)
   const held = heldOn(data, roomId, date)
-  return { row, sold, held, available: row ? Math.max(0, row.offered - sold - held) : 0 }
+  const offered = row?.offered === 1 ? 1 : 0
+  return { row, sold, held, available: Math.max(0, offered - sold - held) }
 }
 export const availableForStay = (data: AppData, roomId: string, checkIn: string, checkOut: string) => {
   const dates = stayDays(checkIn, checkOut)
@@ -34,7 +43,14 @@ async function hash(value: string) {
 export const mock = {
   publicData: async () => {
     const data = readData()
-    const { destinations, hotels, rooms, inventory, reviews, categories, services } = data
+    const destinations = data.destinations.filter(destination => destination.active !== false)
+    const hotels = data.hotels.filter(hotel => hotel.approvalStatus === 'VERIFIED' && !hotel.suspended)
+    const hotelIds = new Set(hotels.map(hotel => hotel.id))
+    const rooms = data.rooms.filter(room => hotelIds.has(room.hotelId) && room.active !== false)
+    const roomIds = new Set(rooms.map(room => room.id))
+    const inventory = data.inventory.filter(row => roomIds.has(row.roomId))
+    const reviews = data.reviews.filter(review => hotelIds.has(review.hotelId) && review.status === 'VISIBLE')
+    const { categories, services } = data
     const availability = inventory.map(row => ({ roomId: row.roomId, date: row.date, ...inventoryView(data, row.roomId, row.date) }))
     return { destinations, hotels, rooms, inventory, availability, reviews, categories, services }
   },
@@ -45,11 +61,22 @@ export const mock = {
   partnerData: async (userId: string) => {
     const data = readData()
     const partner = data.partners.find(p => p.userId === userId)
-    return { partner, hotels: data.hotels.filter(h => partner?.hotelIds.includes(h.id)), rooms: data.rooms.filter(r => partner?.hotelIds.includes(r.hotelId)), inventory: data.inventory, bookings: data.bookings }
+    const hotelIds = partner?.hotelIds ?? []
+    const bookings = data.bookings.filter(booking => hotelIds.includes(booking.hotelId))
+    const bookingIds = new Set(bookings.map(booking => booking.id))
+    return {
+      user: data.users.find(user => user.id === userId), partner,
+      hotels: data.hotels.filter(hotel => hotelIds.includes(hotel.id)),
+      rooms: data.rooms.filter(room => hotelIds.includes(room.hotelId)), inventory: data.inventory, bookings,
+      payments: data.payments.filter(payment => bookingIds.has(payment.bookingId)),
+      refunds: data.refunds.filter(refund => bookingIds.has(refund.bookingId)),
+      reviews: data.reviews.filter(review => hotelIds.includes(review.hotelId)),
+      settlements: data.settlements.filter(settlement => settlement.partnerId === partner?.id),
+    }
   },
   adminData: async () => {
-    const { users, partners, hotels, rooms, bookings, payments, refunds, reviews, categories, services, settlements } = readData()
-    return { users, partners, hotels, rooms, bookings, payments, refunds, reviews, categories, services, settlements }
+    const { users, partners, hotels, rooms, inventory, destinations, topics, trips, stops, activities, bookings, payments, refunds, reviews, categories, services, settlements } = readData()
+    return { users, partners, hotels, rooms, inventory, destinations, topics, trips, stops, activities, bookings, payments, refunds, reviews, categories, services, settlements }
   },
   login: async (email: string, password: string): Promise<User> => {
     const user = readData().users.find(u => u.email.toLowerCase() === email.toLowerCase() || u.name.toLowerCase() === email.toLowerCase())
@@ -178,7 +205,7 @@ export const mock = {
         const start = dateText + 'T' + String(startHour).padStart(2, '0') + ':00'
         const end = dateText + 'T' + String(endHour).padStart(2, '0') + ':00'
         const stopId = uid('stop')
-        stops.push({ id: stopId, tripId, placeId: place.id, name: place.name, address: place.region + ', ' + place.city, start, end, order: stops.length + 1, note: place.description })
+        stops.push({ id: stopId, tripId, placeId: place.id, name: place.name, address: place.region + ', ' + place.city, start, end, order: stops.length + 1, note: place.description, lat: place.lat, lng: place.lng })
         activities.push({ id: uid('activity'), stopId, name: 'Tham quan ' + place.name, start, end, placeId: place.id, note: place.openingHours ? 'Giờ tham khảo: ' + place.openingHours : '', cost: place.price })
         const matched = matches(place)
         reasons[stopId] = (requested(place) ? 'Theo yêu cầu về ' + place.category : matched.length ? 'Hợp sở thích ' + matched.join(', ') : 'Có trong danh mục ' + input.city) + '; mở cửa ' + (place.openingHours ?? 'chưa có thông tin')
@@ -246,18 +273,26 @@ export const mock = {
   }),
   createBooking: async (userId: string, values: BookingInput) => commit(data => {
     assert(values.checkIn >= todayPlus(0) && nights(values.checkIn, values.checkOut) > 0, 'DATE', 'Ngày nhận/trả phòng không hợp lệ.')
-    assert(values.rooms > 0 && values.adults > 0, 'GUESTS', 'Số khách và số phòng phải lớn hơn 0.')
-    const room = data.rooms.find(r => r.id === values.roomId && r.hotelId === values.hotelId)
+    const selectedIds = [...new Set(values.roomIds?.length ? values.roomIds : [values.roomId])]
+    assert(selectedIds.length > 0 && values.adults > 0, 'GUESTS', 'Số khách và số phòng phải lớn hơn 0.')
+    const selectedRooms = selectedIds.map(roomId => data.rooms.find(room => room.id === roomId && room.hotelId === values.hotelId))
     const hotel = data.hotels.find(h => h.id === values.hotelId)
-    assert(room && hotel, 'NOT_FOUND', 'Không tìm thấy phòng.', 404)
-    assert(values.adults + values.children <= room.capacity * values.rooms, 'CAPACITY', 'Số khách vượt sức chứa phòng.')
-    const existing = data.bookings.find(b => b.userId === userId && activeHold(b) && b.roomId === values.roomId && b.checkIn === values.checkIn && b.checkOut === values.checkOut && b.rooms === values.rooms)
+    assert(hotel && selectedRooms.every(Boolean), 'NOT_FOUND', 'Không tìm thấy một hoặc nhiều phòng.', 404)
+    const rooms = selectedRooms.filter((room): room is RoomType => Boolean(room))
+    assert(rooms.every(room => room.active !== false), 'ROOM_INACTIVE', 'Có phòng đang bảo trì hoặc ngừng hoạt động.', 409)
+    assert(values.adults + values.children <= rooms.reduce((sum, room) => sum + room.capacity, 0), 'CAPACITY', 'Số khách vượt tổng sức chứa các phòng.')
+    const selectionKey = selectedIds.slice().sort().join(',')
+    const existing = data.bookings.find(b => b.userId === userId && activeHold(b) && (b.roomIds ?? [b.roomId]).slice().sort().join(',') === selectionKey && b.checkIn === values.checkIn && b.checkOut === values.checkOut)
     if (existing) return existing
     const dates = stayDays(values.checkIn, values.checkOut)
-    assert(dates.every(date => inventoryView(data, room.id, date).available >= values.rooms), 'SOLD_OUT', 'Không còn đủ phòng cho toàn bộ kỳ lưu trú.', 409)
-    const nightlyPrices = dates.map(date => data.inventory.find(i => i.roomId === room.id && i.date === date)?.price ?? room.basePrice)
-    const total = nightlyPrices.reduce((sum, price) => sum + price * values.rooms, 0)
-    const booking: Booking = { ...values, id: uid('BK'), userId, total, nightlyPrices, status: 'PENDING_PAYMENT', holdExpiresAt: new Date(Date.now() + 15 * 60000).toISOString(), createdAt: new Date().toISOString(), policySnapshot: hotel.cancellationPolicy, policyTermsSnapshot: { ...hotel.cancellationTerms } }
+    assert(rooms.every(room => dates.every(date => inventoryView(data, room.id, date).available > 0)), 'SOLD_OUT', 'Một hoặc nhiều phòng không còn trống cho toàn bộ kỳ lưu trú.', 409)
+    const nightlyPrices = dates.map(date => rooms.reduce((sum, room) => sum + (data.inventory.find(item => item.roomId === room.id && item.date === date)?.price ?? room.basePrice), 0))
+    const roomItems = rooms.map(room => {
+      const subtotal = dates.reduce((sum, date) => sum + (data.inventory.find(item => item.roomId === room.id && item.date === date)?.price ?? room.basePrice), 0)
+      return { roomId: room.id, roomNumber: room.roomNumber ?? room.id, nightlyPrice: Math.round(subtotal / dates.length), nights: dates.length, subtotal }
+    })
+    const total = roomItems.reduce((sum, item) => sum + item.subtotal, 0)
+    const booking: Booking = { ...values, roomId: rooms[0]!.id, roomIds: selectedIds, rooms: rooms.length, roomItems, id: uid('BK'), userId, total, nightlyPrices, status: 'PENDING_PAYMENT', holdExpiresAt: new Date(Date.now() + 15 * 60000).toISOString(), createdAt: new Date().toISOString(), policySnapshot: hotel.cancellationPolicy, policyTermsSnapshot: { ...hotel.cancellationTerms } }
     data.bookings.push(booking)
     data.payments.push({ id: uid('PAY'), bookingId: booking.id, status: 'PENDING', amount: total, createdAt: booking.createdAt })
     return booking
@@ -302,19 +337,105 @@ export const mock = {
   saveRoom: async (userId: string, room: RoomType) => commit(data => {
     const partner = data.partners.find(p => p.userId === userId)
     assert(partner?.hotelIds.includes(room.hotelId), 'FORBIDDEN', 'Không có quyền quản lý khách sạn.', 403)
+    assert(room.amenities.every(amenity => partner?.amenities?.includes(amenity)), 'AMENITY', 'Phòng có tiện nghi không thuộc danh mục của chủ khách sạn.')
     assert(room.name.trim() && room.capacity > 0 && room.basePrice > 0, 'VALIDATION', 'Tên, sức chứa và giá phòng không hợp lệ.')
+    assert(room.images?.length, 'VALIDATION', 'Phòng phải có ít nhất một ảnh.')
+    assert(room.roomNumber?.trim(), 'VALIDATION', 'Số phòng không được để trống.')
+    room.roomNumber = normalizeRoomNumber(room.roomNumber!)
+    assert(!data.rooms.some(item => item.hotelId === room.hotelId && normalizeRoomNumber(item.roomNumber ?? '') === room.roomNumber && item.id !== room.id), 'DUPLICATE', 'Số phòng đã tồn tại trong khách sạn.', 409)
+    room.images = [...new Set(room.images ?? [])]
+    room.image = room.images[0]
     const old = data.rooms.find(r => r.id === room.id)
-    if (old) Object.assign(old, room)
-    else data.rooms.push({ ...room, id: uid('room') })
+    if (old) { Object.assign(old, room); return old }
+    const created = { ...room, id: uid('room') }
+    data.rooms.push(created)
+    for (let offset = 0; offset < 90; offset++) data.inventory.push({ roomId: created.id, date: todayPlus(offset), offered: 1, price: created.basePrice, revision: 1 })
+    return created
+  }),
+  savePartnerHotel: async (userId: string, values: Omit<Hotel, 'partnerId'>, submit: boolean) => commit(data => {
+    const partner = data.partners.find(item => item.userId === userId); assert(partner, 'PARTNER', 'Không tìm thấy hồ sơ chủ khách sạn.', 404)
+    assert(values.amenities.every(amenity => partner.amenities?.includes(amenity)), 'AMENITY', 'Khách sạn có tiện nghi không thuộc danh mục của chủ khách sạn.')
+    assert(values.name.trim() && values.address.trim() && values.city.trim(), 'VALIDATION', 'Tên, địa chỉ và tỉnh/thành không được để trống.')
+    assert(values.images?.length, 'VALIDATION', 'Khách sạn phải có ít nhất một ảnh.')
+    values.images = [...new Set(values.images ?? [])]
+    values.image = values.images[0]
+    const existing = data.hotels.find(item => item.id === values.id && partner.hotelIds.includes(item.id))
+    if (existing) {
+      Object.assign(existing, values)
+      if (submit && existing.approvalStatus !== 'VERIFIED') { existing.approvalStatus = 'PENDING'; existing.rejectionReason = undefined }
+      return existing
+    }
+    const hotel: Hotel = { ...values, id: uid('hotel'), partnerId: partner.id, approvalStatus: submit ? 'PENDING' : 'NEEDS_INFO', registeredAt: new Date().toISOString() }
+    data.hotels.push(hotel); partner.hotelIds.push(hotel.id); partner.revision++
+    return hotel
+  }),
+  saveHotelAmenities: async (userId: string, amenities: string[], roomId?: string, hotelId?: string) => commit(data => {
+    const partner = data.partners.find(item => item.userId === userId); assert(partner, 'PARTNER', 'Không tìm thấy hồ sơ chủ khách sạn.', 404)
+    assert(amenities.every(amenity => partner.amenities?.includes(amenity)), 'AMENITY', 'Có tiện nghi không thuộc danh mục của chủ khách sạn.')
+    if (roomId) { const room = data.rooms.find(item => item.id === roomId); assert(room && partner.hotelIds.includes(room.hotelId), 'FORBIDDEN', 'Không có quyền sửa phòng này.', 403); room.amenities = amenities; return room }
+    const hotel = data.hotels.find(item => item.id === hotelId && partner.hotelIds.includes(item.id)); assert(hotel, 'HOTEL', 'Vui lòng chọn khách sạn.', 404); hotel.amenities = amenities; return hotel
+  }),
+  addPartnerAmenity: async (userId: string, value: string) => commit(data => {
+    const partner = data.partners.find(item => item.userId === userId); assert(partner, 'PARTNER', 'Không tìm thấy hồ sơ chủ khách sạn.', 404)
+    const name = normalizeAmenityName(value)
+    assert(name.length >= 2 && name.length <= 50, 'VALIDATION', 'Tên tiện nghi phải có từ 2 đến 50 ký tự.')
+    assert(!partner.amenities?.some(item => item.toLocaleLowerCase('vi') === name.toLocaleLowerCase('vi')), 'DUPLICATE', 'Tiện nghi này đã có trong danh mục.', 409)
+    partner.amenities = [...(partner.amenities ?? []), name]
+    return partner
+  }),
+  updatePartnerAmenity: async (userId: string, currentValue: string, value: string) => commit(data => {
+    const partner = data.partners.find(item => item.userId === userId); assert(partner, 'PARTNER', 'Không tìm thấy hồ sơ chủ khách sạn.', 404)
+    const current = partner.amenities?.find(item => item.toLocaleLowerCase('vi') === currentValue.toLocaleLowerCase('vi'))
+    assert(current, 'NOT_FOUND', 'Không tìm thấy tiện nghi.', 404)
+    const name = normalizeAmenityName(value)
+    assert(name.length >= 2 && name.length <= 50, 'VALIDATION', 'Tên tiện nghi phải có từ 2 đến 50 ký tự.')
+    assert(!partner.amenities?.some(item => item !== current && item.toLocaleLowerCase('vi') === name.toLocaleLowerCase('vi')), 'DUPLICATE', 'Tiện nghi này đã có trong danh mục.', 409)
+    partner.amenities = partner.amenities?.map(item => item === current ? name : item)
+    const hotelIds = new Set(partner.hotelIds)
+    for (const hotel of data.hotels.filter(item => hotelIds.has(item.id))) hotel.amenities = hotel.amenities.map(item => item === current ? name : item)
+    for (const room of data.rooms.filter(item => hotelIds.has(item.hotelId))) room.amenities = room.amenities.map(item => item === current ? name : item)
+    return partner
+  }),
+  deletePartnerAmenity: async (userId: string, value: string) => commit(data => {
+    const partner = data.partners.find(item => item.userId === userId); assert(partner, 'PARTNER', 'Không tìm thấy hồ sơ chủ khách sạn.', 404)
+    const current = partner.amenities?.find(item => item.toLocaleLowerCase('vi') === value.toLocaleLowerCase('vi'))
+    assert(current, 'NOT_FOUND', 'Không tìm thấy tiện nghi.', 404)
+    partner.amenities = partner.amenities?.filter(item => item !== current)
+    const hotelIds = new Set(partner.hotelIds)
+    for (const hotel of data.hotels.filter(item => hotelIds.has(item.id))) hotel.amenities = hotel.amenities.filter(item => item !== current)
+    for (const room of data.rooms.filter(item => hotelIds.has(item.hotelId))) room.amenities = room.amenities.filter(item => item !== current)
+    return partner
+  }),
+  saveCancellationPolicy: async (userId: string, policy: string, rules: CancellationRule[], hotelId?: string) => commit(data => {
+    const partner = data.partners.find(item => item.userId === userId); const hotel = data.hotels.find(item => item.id === hotelId && partner?.hotelIds.includes(item.id)); assert(hotel, 'HOTEL', 'Vui lòng chọn khách sạn.', 404)
+    const normalized = [...rules].sort((a, b) => b.hoursBeforeCheckIn - a.hoursBeforeCheckIn)
+    assert(policy.trim() && normalized.length > 0 && normalized.every(rule => Number.isInteger(rule.hoursBeforeCheckIn) && rule.hoursBeforeCheckIn >= 0 && rule.refundRate >= 0 && rule.refundRate <= 1), 'VALIDATION', 'Thông tin chính sách hủy không hợp lệ.')
+    assert(new Set(normalized.map(rule => rule.hoursBeforeCheckIn)).size === normalized.length, 'DUPLICATE', 'Mỗi mốc thời gian chỉ được xuất hiện một lần.')
+    assert(normalized.every((rule, index) => index === 0 || normalized[index - 1]!.refundRate >= rule.refundRate), 'ORDER', 'Mốc hủy sớm hơn không được có tỷ lệ hoàn thấp hơn mốc hủy muộn.')
+    const fullRefund = normalized.filter(rule => rule.refundRate === 1).at(-1)
+    hotel.cancellationPolicy = policy
+    hotel.cancellationTerms = {
+      ...hotel.cancellationTerms,
+      freeUntilHours: fullRefund?.hoursBeforeCheckIn ?? normalized[0]!.hoursBeforeCheckIn,
+      lateFeeRate: 1 - normalized.at(-1)!.refundRate,
+      rules: normalized,
+    }
+    return hotel
+  }),
+  toggleRoomActive: async (userId: string, roomId: string) => commit(data => {
+    const partner = data.partners.find(item => item.userId === userId); const room = data.rooms.find(item => item.id === roomId); assert(room && partner?.hotelIds.includes(room.hotelId), 'FORBIDDEN', 'Không có quyền sửa phòng này.', 403)
+    room.active = room.active === false
+    return room
   }),
   saveInventory: async (userId: string, roomId: string, rows: { date: string; offered: number; price: number; revision: number }[]) => commit(data => {
     const room = data.rooms.find(r => r.id === roomId)
     const partner = data.partners.find(p => p.userId === userId)
     assert(room && partner?.hotelIds.includes(room.hotelId), 'FORBIDDEN', 'Không có quyền sửa lịch phòng.', 403)
     for (const row of rows) {
+      assert(row.date >= todayPlus(0), 'DATE', 'Không thể thay đổi lịch phòng trong quá khứ.')
       const current = data.inventory.find(i => i.roomId === roomId && i.date === row.date)
       assert((current?.revision ?? 0) === row.revision, 'CONFLICT', 'Lịch phòng đã thay đổi. Vui lòng tải lại.', 409)
-      assert(Number.isInteger(row.offered) && row.offered >= 0 && row.price > 0, 'VALIDATION', 'Số phòng hoặc giá không hợp lệ.')
+      assert(Number.isInteger(row.offered) && (row.offered === 0 || row.offered === 1) && row.price > 0, 'VALIDATION', 'Trạng thái mở bán hoặc giá không hợp lệ.')
       assert(row.offered >= soldOn(data, roomId, row.date) + heldOn(data, roomId, row.date), 'CAPACITY', 'Số phòng bán thấp hơn số đã đặt và đang giữ.', 409)
     }
     for (const row of rows) {
@@ -324,10 +445,51 @@ export const mock = {
     }
   }),
   verifyPartner: async (id: string, status: 'VERIFIED' | 'REJECTED' | 'NEEDS_INFO', note: string, revision: number) => commit(data => {
-    const partner = data.partners.find(p => p.id === id); assert(partner, 'NOT_FOUND', 'Không tìm thấy đối tác.', 404)
+    const partner = data.partners.find(p => p.id === id); assert(partner, 'NOT_FOUND', 'Không tìm thấy chủ khách sạn.', 404)
     assert(partner.revision === revision, 'CONFLICT', 'Hồ sơ đã thay đổi. Vui lòng tải lại.', 409)
     assert(status === 'VERIFIED' || note.trim(), 'NOTE', 'Vui lòng nhập lý do hoặc nội dung yêu cầu bổ sung.')
     partner.status = status; partner.note = note; partner.revision++
+  }),
+  verifyHotel: async (id: string, status: 'VERIFIED' | 'REJECTED' | 'NEEDS_INFO', note: string) => commit(data => {
+    const hotel = data.hotels.find(item => item.id === id); assert(hotel, 'NOT_FOUND', 'Không tìm thấy khách sạn.', 404)
+    assert(status === 'VERIFIED' || note.trim(), 'NOTE', 'Vui lòng nhập lý do hoặc nội dung yêu cầu bổ sung.')
+    hotel.approvalStatus = status
+    hotel.rejectionReason = status === 'REJECTED' ? note : undefined
+    hotel.approvedAt = status === 'VERIFIED' ? new Date().toISOString() : undefined
+    return hotel
+  }),
+  toggleUserActive: async (id: string) => commit(data => {
+    const user = data.users.find(item => item.id === id); assert(user, 'NOT_FOUND', 'Không tìm thấy người dùng.', 404)
+    assert(user.role !== 'admin', 'FORBIDDEN', 'Không thể khóa tài khoản quản trị đang sử dụng.', 403)
+    user.active = user.active === false
+    return user
+  }),
+  toggleHotelSuspended: async (id: string) => commit(data => {
+    const hotel = data.hotels.find(item => item.id === id); assert(hotel, 'NOT_FOUND', 'Không tìm thấy khách sạn.', 404)
+    assert(hotel.approvalStatus === 'VERIFIED', 'STATUS', 'Chỉ khách sạn đã duyệt mới có thể tạm ngừng.', 409)
+    hotel.suspended = !hotel.suspended
+    return hotel
+  }),
+  saveDestination: async (id: string | undefined, values: Omit<Destination, 'id'>) => commit(data => {
+    assert(values.name.trim() && values.city.trim() && values.region.trim(), 'VALIDATION', 'Tên, tỉnh/thành và địa chỉ không được để trống.')
+    assert(values.price >= 0, 'VALIDATION', 'Giá tham khảo không hợp lệ.')
+    const current = data.destinations.find(item => item.id === id)
+    if (current) Object.assign(current, values)
+    else data.destinations.unshift({ ...values, id: uid('destination') })
+  }),
+  toggleDestination: async (id: string) => commit(data => {
+    const destination = data.destinations.find(item => item.id === id); assert(destination, 'NOT_FOUND', 'Không tìm thấy địa điểm.', 404)
+    destination.active = destination.active === false
+  }),
+  saveTopic: async (id: string | undefined, values: Omit<TravelTopic, 'id'>) => commit(data => {
+    assert(values.name.trim(), 'VALIDATION', 'Tên chủ đề không được để trống.')
+    const current = data.topics.find(item => item.id === id)
+    if (current) Object.assign(current, values)
+    else data.topics.push({ ...values, id: uid('topic') })
+  }),
+  toggleTopic: async (id: string) => commit(data => {
+    const topic = data.topics.find(item => item.id === id); assert(topic, 'NOT_FOUND', 'Không tìm thấy chủ đề.', 404)
+    topic.active = !topic.active
   }),
   saveCategory: async (id: string | undefined, name: string, description: string, active: boolean) => commit(data => {
     assert(name.trim(), 'NAME', 'Tên danh mục không được để trống.')

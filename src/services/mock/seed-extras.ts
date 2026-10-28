@@ -4,7 +4,7 @@ import { todayPlus } from '@/lib/utils'
 type ExtraSeed = Pick<AppData, 'destinations' | 'hotels' | 'rooms' | 'inventory' | 'trips' | 'stops' | 'activities' | 'bookings' | 'payments' | 'refunds' | 'reviews' | 'partners' | 'services' | 'settlements' | 'favorites'>
 
 const cancellationPolicy = 'Miễn phí khi hủy trước nhận phòng ít nhất 24 giờ; sau đó phí 50%.'
-const cancellationTerms: CancellationTerms = { freeUntilHours: 24, lateFeeRate: 0.5, checkInHour: 14 }
+const cancellationTerms: CancellationTerms = { freeUntilHours: 24, lateFeeRate: 0.5, checkInHour: 14, rules: [{ hoursBeforeCheckIn: 24, refundRate: 1 }, { hoursBeforeCheckIn: 0, refundRate: 0.5 }] }
 const daysAgo = (days: number) => new Date(Date.now() - days * 86400000).toISOString()
 
 export function createSeedExtras(): ExtraSeed {
@@ -48,12 +48,12 @@ export function createSeedExtras(): ExtraSeed {
       { id: 'lantern-house', name: 'Lantern House Hội An', city: 'Quảng Nam', area: 'Hội An', address: '9 Nguyễn Duy Hiệu, Hội An, Quảng Nam', description: 'Khách sạn demo yên tĩnh, thuận tiện đi bộ vào phố cổ.', stars: 3, rating: 4.4, amenities: ['Wi-Fi', 'Sân vườn', 'Gần trung tâm'], partnerId: 'partner-river', cancellationPolicy, cancellationTerms: { ...cancellationTerms } },
     ],
     rooms: [
-      { id: 'room-sunrise-standard', hotelId: 'sunrise-danang', name: 'Ocean Standard', description: 'Phòng đôi sáng thoáng hướng biển.', capacity: 2, area: 32, bed: '1 giường đôi', basePrice: 1800000, amenities: ['Wi-Fi', 'TV', 'Điều hòa', 'Bữa sáng'], image: '/images/room-deluxe.png' },
-      { id: 'room-sunrise-suite', hotelId: 'sunrise-danang', name: 'Sunrise Suite', description: 'Suite rộng có khu vực tiếp khách.', capacity: 4, area: 55, bed: '2 giường đôi', basePrice: 2700000, amenities: ['Wi-Fi', 'TV', 'Điều hòa', 'Bồn tắm'], image: '/images/room-family-suite.png' },
-      { id: 'room-lotus-classic', hotelId: 'lotus-hue', name: 'Classic River', description: 'Phòng đôi nhìn về trung tâm thành phố.', capacity: 2, area: 28, bed: '1 giường đôi', basePrice: 1050000, amenities: ['Wi-Fi', 'TV', 'Điều hòa'], image: '/images/room-river-view.png' },
-      { id: 'room-pine-balcony', hotelId: 'pine-valley', name: 'Pine Balcony', description: 'Phòng đôi có ban công nhìn ra khu vườn.', capacity: 2, area: 30, bed: '1 giường đôi', basePrice: 1300000, amenities: ['Wi-Fi', 'Máy sưởi', 'Ban công'], image: '/images/room-garden-view.png' },
-      { id: 'room-bay-view', hotelId: 'bay-breeze', name: 'Bay View', description: 'Phòng đôi tiện nghi cho kỳ nghỉ ven biển.', capacity: 2, area: 31, bed: '1 giường đôi', basePrice: 1550000, amenities: ['Wi-Fi', 'TV', 'Điều hòa'], image: '/images/room-deluxe.png' },
-      { id: 'room-lantern-garden', hotelId: 'lantern-house', name: 'Garden Room', description: 'Phòng đôi yên tĩnh nhìn ra sân vườn.', capacity: 2, area: 27, bed: '1 giường đôi', basePrice: 850000, amenities: ['Wi-Fi', 'Điều hòa', 'Sân vườn'], image: '/images/room-garden-view.png' },
+      { id: 'room-sunrise-standard', hotelId: 'sunrise-danang', name: 'Ocean Standard', roomType: 'Standard', description: 'Phòng đôi sáng thoáng hướng biển.', capacity: 2, area: 32, bed: '1 giường đôi', basePrice: 1800000, amenities: ['Wi-Fi', 'TV', 'Điều hòa', 'Bữa sáng'], image: '/images/room-deluxe.png' },
+      { id: 'room-sunrise-suite', hotelId: 'sunrise-danang', name: 'Sunrise Suite', roomType: 'Suite', description: 'Suite rộng có khu vực tiếp khách.', capacity: 4, area: 55, bed: '2 giường đôi', basePrice: 2700000, amenities: ['Wi-Fi', 'TV', 'Điều hòa', 'Bồn tắm'], image: '/images/room-family-suite.png' },
+      { id: 'room-lotus-classic', hotelId: 'lotus-hue', name: 'Classic River', roomType: 'Classic', description: 'Phòng đôi nhìn về trung tâm thành phố.', capacity: 2, area: 28, bed: '1 giường đôi', basePrice: 1050000, amenities: ['Wi-Fi', 'TV', 'Điều hòa'], image: '/images/room-river-view.png' },
+      { id: 'room-pine-balcony', hotelId: 'pine-valley', name: 'Pine Balcony', roomType: 'Phòng đôi', description: 'Phòng đôi có ban công nhìn ra khu vườn.', capacity: 2, area: 30, bed: '1 giường đôi', basePrice: 1300000, amenities: ['Wi-Fi', 'Máy sưởi', 'Ban công'], image: '/images/room-garden-view.png' },
+      { id: 'room-bay-view', hotelId: 'bay-breeze', name: 'Bay View', roomType: 'Deluxe', description: 'Phòng đôi tiện nghi cho kỳ nghỉ ven biển.', capacity: 2, area: 31, bed: '1 giường đôi', basePrice: 1550000, amenities: ['Wi-Fi', 'TV', 'Điều hòa'], image: '/images/room-deluxe.png' },
+      { id: 'room-lantern-garden', hotelId: 'lantern-house', name: 'Garden Room', roomType: 'Phòng đôi', description: 'Phòng đôi yên tĩnh nhìn ra sân vườn.', capacity: 2, area: 27, bed: '1 giường đôi', basePrice: 850000, amenities: ['Wi-Fi', 'Điều hòa', 'Sân vườn'], image: '/images/room-garden-view.png' },
     ],
     inventory,
     trips: [

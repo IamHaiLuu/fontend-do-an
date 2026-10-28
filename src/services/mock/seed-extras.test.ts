@@ -54,3 +54,11 @@ it('nâng cấp dữ liệu v2, giữ bản ghi đã sửa và không thêm trù
   expect(upgraded.inventory.some(row => row.roomId === 'room-lotus-classic' && row.date === todayPlus(7))).toBe(true)
   expect(readData().hotels.length).toBe(upgraded.hotels.length)
 })
+
+it('một chủ khách sạn quản lý nhiều khách sạn và mỗi khách sạn, phòng có album ảnh', () => {
+  const data = readData()
+  const owner = data.partners.find(partner => partner.userId === 'user-partner')
+  expect(owner?.hotelIds.length).toBeGreaterThan(1)
+  expect(data.hotels.filter(hotel => owner?.hotelIds.includes(hotel.id)).every(hotel => (hotel.images?.length ?? 0) > 1)).toBe(true)
+  expect(data.rooms.filter(room => owner?.hotelIds.includes(room.hotelId)).every(room => (room.images?.length ?? 0) > 1)).toBe(true)
+})

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 import { useQueryClient } from '@tanstack/react-query'
-import { ArrowRight, CalendarDays, Clock3, MapPin, PencilLine, Sparkles, Wallet } from 'lucide-react'
+import { ArrowRight, CalendarDays, Clock3, Crosshair, MapPin, PencilLine, Sparkles, Wallet } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, ErrorState, Feedback, FormField, LoadingState } from '@/components/common'
 import { useCatalog, useTourist } from '@/hooks/data'
@@ -10,6 +10,7 @@ import { addDay, currency, day, errorMessage, nights, todayPlus } from '@/lib/ut
 import { repo, isMock } from '@/services'
 import { useSession } from '@/stores/session'
 import type { PlannerInput } from '@/types/domain'
+import { GoogleMapView } from '@/components/google-map'
 
 const interests = ['Biển', 'Thiên nhiên', 'Ẩm thực', 'Văn hóa', 'Mua sắm', 'Nghỉ dưỡng', 'Khám phá']
 const suggestedRefinements = ['Lịch thư giãn, ít hoạt động', 'Ưu tiên biển', 'Ưu tiên văn hóa', 'Ưu tiên thiên nhiên']
@@ -30,6 +31,7 @@ export function PlannerPage() {
     ...(params.get('city') ? { city: params.get('city')! } : {}),
   }))
   const [activeDay, setActiveDay] = useState(0)
+  const [selectedStopId, setSelectedStopId] = useState('')
   const [refinement, setRefinement] = useState('')
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
@@ -50,6 +52,7 @@ export function PlannerPage() {
       const result = await repo.plan({ ...form, note })
       setDraft(result)
       setActiveDay(0)
+      setSelectedStopId(result.stops[0]?.id ?? '')
       setRefinement('')
       if (result.totalCost > form.budget) tell('Chi phí ước tính vượt ngân sách. Hãy giảm hoạt động hoặc điều chỉnh ngân sách.', 'error')
       else tell('Đã tạo bản nháp. Bạn có thể tinh chỉnh, sửa tên hoạt động hoặc lưu chuyến đi.', 'success')
@@ -71,6 +74,8 @@ export function PlannerPage() {
   const days = draft ? Array.from({ length: Math.max(0, nights(draft.trip.startDate, draft.trip.endDate) + 1) }, (_, index) => addDay(draft.trip.startDate, index)) : []
   const selectedDate = days[Math.min(activeDay, days.length - 1)]
   const dayStops = draft?.stops.filter(stop => stop.start.startsWith(selectedDate ?? '')).sort((a, b) => a.start.localeCompare(b.start)) ?? []
+  const mapPoints = draft?.stops.filter(stop => stop.lat !== undefined && stop.lng !== undefined).map(stop => ({ id: stop.id, lat: stop.lat!, lng: stop.lng!, label: stop.name })) ?? []
+  const activeStopId = selectedStopId || dayStops[0]?.id || mapPoints[0]?.id || ''
 
   return <div className="bg-white">
     <section className="container-app pt-8 md:pt-12"><div className="relative overflow-hidden rounded-[28px] bg-[#1E3A5F] text-white">
@@ -112,11 +117,11 @@ export function PlannerPage() {
             {draft.costBreakdown && <div className="grid gap-3 border-t border-slate-100 px-6 py-5 text-sm sm:grid-cols-3"><CostPart label="Lưu trú" value={draft.costBreakdown.lodging} /><CostPart label="Ăn uống" value={draft.costBreakdown.food} /><CostPart label="Vé tham quan" value={draft.costBreakdown.activities} /></div>}
           </Card>
           <div className="mt-7 flex flex-wrap items-end justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-[.15em] text-[#5D8BA5]">Khám phá theo ngày</p><h2 className="mt-1 text-2xl font-semibold text-[#1E3A5F]">Lịch trình từng ngày</h2></div><Button size="sm" variant="secondary" disabled={busy} onClick={() => generate()}><Sparkles size={16} />Tạo lại</Button></div>
-          <div role="tablist" aria-label="Chọn ngày trong lịch trình" className="mt-4 flex gap-2 overflow-x-auto pb-2">{days.map((date, index) => <button key={date} role="tab" aria-selected={index === activeDay} className={'shrink-0 rounded-xl border px-4 py-2.5 text-left text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1E3A5F] ' + (index === activeDay ? 'border-[#1E3A5F] bg-[#1E3A5F] text-white' : 'border-slate-200 bg-white text-slate-700 hover:bg-[#EAF0F6]')} onClick={() => setActiveDay(index)}><strong className="block">Ngày {index + 1}</strong><span className="text-xs opacity-80">{day(date)}</span></button>)}</div>
-          <div role="tabpanel" className="mt-3 grid gap-3">{dayStops.length ? dayStops.map(stop => {
+          <div role="tablist" aria-label="Chọn ngày trong lịch trình" className="mt-4 flex gap-2 overflow-x-auto pb-2">{days.map((date, index) => <button key={date} role="tab" aria-selected={index === activeDay} className={'shrink-0 rounded-xl border px-4 py-2.5 text-left text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1E3A5F] ' + (index === activeDay ? 'border-[#1E3A5F] bg-[#1E3A5F] text-white' : 'border-slate-200 bg-white text-slate-700 hover:bg-[#EAF0F6]')} onClick={() => { setActiveDay(index); setSelectedStopId(draft.stops.find(stop => stop.start.startsWith(date))?.id ?? '') }}><strong className="block">Ngày {index + 1}</strong><span className="text-xs opacity-80">{day(date)}</span></button>)}</div>
+          <div className="mt-3 grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_420px]"><div role="tabpanel" className="grid gap-3">{dayStops.length ? dayStops.map((stop, stopIndex) => {
             const activity = draft.activities.find(item => item.stopId === stop.id)
-            return <Card key={stop.id} className="overflow-hidden"><div className="grid sm:grid-cols-[88px_minmax(0,1fr)]"><div className="flex items-center gap-2 bg-[#EAF0F6] px-5 py-3 text-sm font-semibold text-[#1E3A5F] sm:flex-col sm:justify-center sm:gap-0"><Clock3 size={16} className="sm:mb-2" /><span>{stop.start.slice(11, 16)}</span><span className="text-xs font-normal">đến {stop.end.slice(11, 16)}</span></div><div className="min-w-0 p-5"><div className="flex flex-wrap items-start justify-between gap-2"><div><h3 className="text-lg font-semibold text-[#1E3A5F]">{stop.name}</h3><p className="mt-1 flex items-center gap-1 text-xs text-slate-500"><MapPin size={13} />{stop.address}</p></div>{activity && <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-600">{activity.cost ? currency(activity.cost) + '/khách' : 'Miễn phí'}</span>}</div><p className="mt-3 text-sm leading-6 text-slate-600">{draft.reasons?.[stop.id] ?? stop.note}</p>{activity && <label className="mt-4 flex items-center gap-2 text-sm text-slate-600"><PencilLine size={15} className="shrink-0" /><span className="sr-only">Tên hoạt động tại {stop.name}</span><input aria-label={'Tên hoạt động tại ' + stop.name} value={activity.name} onChange={event => setDraft({ ...draft, activities: draft.activities.map(item => item.id === activity.id ? { ...item, name: event.target.value } : item) })} /></label>}</div></div></Card>
-          }) : <Card className="p-6 text-sm text-slate-500">Chưa có địa điểm phù hợp giờ mở cửa trong ngày này.</Card>}</div>
+            return <Card key={stop.id} className={`overflow-hidden ${activeStopId === stop.id ? 'ring-2 ring-[#159FE8]' : ''}`}><div className="grid sm:grid-cols-[88px_minmax(0,1fr)]"><div className={`flex items-center gap-2 px-5 py-3 text-sm font-semibold sm:flex-col sm:justify-center sm:gap-0 ${activeStopId === stop.id ? 'bg-[#1E3A5F] text-white' : 'bg-[#EAF0F6] text-[#1E3A5F]'}`}><span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#159FE8] text-xs text-white">{stopIndex + 1}</span><Clock3 size={16} className="sm:mt-2" /><span>{stop.start.slice(11, 16)}</span><span className="text-xs font-normal">đến {stop.end.slice(11, 16)}</span></div><div className="min-w-0 p-5"><div className="flex flex-wrap items-start justify-between gap-2"><div><h3 className="text-lg font-semibold text-[#1E3A5F]">{stop.name}</h3><p className="mt-1 flex items-center gap-1 text-xs text-slate-500"><MapPin size={13} />{stop.address}</p></div><div className="flex flex-wrap items-center gap-2">{stop.lat !== undefined && stop.lng !== undefined && <Button type="button" size="sm" variant="ghost" onClick={() => setSelectedStopId(stop.id)}><Crosshair size={15} />Xem trên bản đồ</Button>}{activity && <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-600">{activity.cost ? currency(activity.cost) + '/khách' : 'Miễn phí'}</span>}</div></div><p className="mt-3 text-sm leading-6 text-slate-600">{draft.reasons?.[stop.id] ?? stop.note}</p>{activity && <label className="mt-4 flex items-center gap-2 text-sm text-slate-600"><PencilLine size={15} className="shrink-0" /><span className="sr-only">Tên hoạt động tại {stop.name}</span><input aria-label={'Tên hoạt động tại ' + stop.name} value={activity.name} onChange={event => setDraft({ ...draft, activities: draft.activities.map(item => item.id === activity.id ? { ...item, name: event.target.value } : item) })} /></label>}</div></div></Card>
+          }) : <Card className="p-6 text-sm text-slate-500">Chưa có địa điểm phù hợp giờ mở cửa trong ngày này.</Card>}</div><Card className="overflow-hidden xl:sticky xl:top-24"><div className="p-4"><h3 className="font-semibold text-[#1E3A5F]">Bản đồ các điểm dừng</h3><p className="mt-1 text-xs text-slate-500">Marker được đánh số theo thứ tự của toàn bộ hành trình.</p></div><GoogleMapView points={mapPoints} address={draft.trip.city} activePointId={activeStopId} onPointSelect={setSelectedStopId} className="!h-[460px] rounded-none border-x-0" /></Card></div>
           <Card className="mt-7 p-5 sm:p-6"><h2 className="text-lg font-semibold text-[#1E3A5F]">Tinh chỉnh lịch trình</h2><p className="mt-1 text-sm text-slate-500">Chọn một gợi ý hoặc ghi rõ mong muốn để tạo bản nháp mới.</p><div className="mt-4 flex flex-wrap gap-2">{suggestedRefinements.map(value => <button key={value} type="button" onClick={() => setRefinement(value)} className="rounded-full border border-slate-200 px-3 py-2 text-xs text-slate-700 hover:border-[#1E3A5F] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1E3A5F]">{value}</button>)}</div><div className="mt-4"><FormField label="Điều chỉnh của bạn"><input value={refinement} onChange={e => setRefinement(e.target.value)} placeholder="Ví dụ: ưu tiên thiên nhiên, ít hoạt động" /></FormField></div><Button className="mt-4" variant="secondary" disabled={busy || !refinement.trim()} onClick={() => generate([form.note, refinement].filter(Boolean).join('; '))}>Tinh chỉnh demo<ArrowRight size={16} /></Button></Card>
           <div className="mt-4 flex items-start gap-2 text-xs leading-5 text-slate-500"><Wallet size={15} className="mt-0.5 shrink-0" /><p>Giá lưu trú và ăn uống là giả định demo; vé tham quan lấy từ danh mục. Chưa tính vận chuyển và biến động giá thực tế. {isMock && 'Bản nháp được giữ trong phiên trình duyệt khi bạn đăng nhập.'}</p></div>
         </> : <Card className="flex min-h-[420px] flex-col items-center justify-center p-8 text-center"><div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#EAF0F6] text-[#1E3A5F]"><CalendarDays size={28} /></div><h2 className="mt-5 text-xl font-semibold text-[#1E3A5F]">Lịch trình của bạn sẽ xuất hiện ở đây</h2><p className="mt-2 max-w-sm text-sm leading-6 text-slate-500">Chọn điểm đến, thời gian và sở thích. Sau khi tạo, bạn sẽ xem từng ngày, tinh chỉnh và lưu chuyến đi.</p><Link to="/explore" className="mt-5 inline-flex items-center gap-1 text-sm font-semibold text-[#1E3A5F] hover:underline">Xem địa điểm trong danh mục <ArrowRight size={15} /></Link></Card>}

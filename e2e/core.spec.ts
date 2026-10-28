@@ -1,5 +1,11 @@
 import { expect, test } from '@playwright/test'
 
+const datePlus = (days: number) => {
+  const date = new Date()
+  date.setDate(date.getDate() + days)
+  return date.toISOString().slice(0, 10)
+}
+
 test.beforeEach(async ({ page }) => {
   await page.goto('/')
   await page.evaluate(() => { localStorage.clear(); sessionStorage.clear() })
@@ -12,7 +18,7 @@ test('khám phá, tìm khách sạn và giữ bộ lọc khi xem chi tiết', as
   await expect(page.getByRole('heading', { name: 'Tìm khách sạn' })).toBeVisible()
   await page.locator('a[href*="/hotels/sea-garden"]').click()
   await expect(page.getByText('Sea Garden Hotel').first()).toBeVisible()
-  await expect(page.getByRole('img', { name: 'Ảnh minh họa Deluxe Double' })).toBeVisible()
+  await expect(page.getByRole('img', { name: 'Ảnh minh họa Deluxe Double', exact: true })).toBeVisible()
   await page.getByRole('link', { name: 'Quay lại kết quả tìm kiếm' }).click()
   await expect(page).toHaveURL(/city=/)
 })
@@ -37,9 +43,9 @@ test('lọc khách sạn theo sao và giá, hiển thị trạng thái rỗng', 
   await page.goto('/hotels?city=%C4%90%C3%A0%20N%E1%BA%B5ng&stars=4&maxPrice=1500000')
   await expect(page.getByRole('link', { name: 'Xem chi tiết' })).toHaveCount(1)
   await expect(page.getByText('Sea Garden Hotel')).toBeVisible()
-  await page.getByLabel('Điểm đến').fill('Đà Lạt')
+  await page.getByLabel('Điểm đến').fill('Huế')
   await page.getByRole('button', { name: 'Tìm phòng' }).click()
-  await expect(page.getByText('Pine Valley Đà Lạt')).toBeVisible()
+  await expect(page.getByText('Lotus Riverside Huế')).toBeVisible()
   await page.getByLabel('Điểm đến').fill('Sa Pa')
   await page.getByRole('button', { name: 'Tìm phòng' }).click()
   await expect(page.getByRole('heading', { name: 'Không có khách sạn phù hợp' })).toBeVisible()
@@ -65,6 +71,8 @@ test('du khách đăng nhập và tạo lịch trình demo', async ({ page }) =>
   await page.goto('/ai/trip-planner')
   await page.getByRole('button', { name: 'Tạo lịch trình demo' }).click()
   await expect(page.getByText('Lịch trình của bạn')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Bản đồ các điểm dừng' })).toBeVisible()
+  await expect(page.getByRole('button', { name: /Điểm dừng 1:/ })).toBeVisible()
   await page.getByRole('button', { name: 'Lưu lịch trình' }).click()
   await expect(page).toHaveURL(/\/trips\//)
 })
@@ -96,25 +104,26 @@ test('tìm khách sạn từ trang chủ và tinh chỉnh lịch trước khi đ
   await expect(page.getByRole('button', { name: 'Lưu lịch trình' })).toBeVisible()
 })
 
-test('đối tác chỉ sửa phòng bán và giá', async ({ page }) => {
+test('chủ khách sạn quản lý từng phòng vật lý thuộc khách sạn', async ({ page }) => {
   await page.goto('/auth/login')
-  await page.getByRole('button', { name: /Đối tác: doitac@demo.vn/ }).click()
+  await page.getByRole('button', { name: /Chủ khách sạn: doitac@demo.vn/ }).click()
   await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click()
   await page.goto('/partner/rooms')
-  await page.getByRole('link', { name: 'Lịch phòng' }).first().click()
-  await expect(page.getByRole('heading', { name: /Lịch phòng/ })).toBeVisible()
-  await expect(page.getByRole('columnheader', { name: 'Đang giữ' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Phòng khách sạn' })).toBeVisible()
+  await expect(page.getByText('Phòng 101').first()).toBeVisible()
+  await page.goto('/partner/booking-calendar')
+  await expect(page.locator('main').getByRole('heading', { name: 'Lịch đặt phòng' })).toBeVisible()
+  await expect(page.getByRole('columnheader', { name: 'Phòng' })).toBeVisible()
 })
 
 test('du khách đặt phòng, hủy và theo dõi hoàn tiền qua Admin', async ({ page }) => {
   await page.goto('/auth/login')
   await page.getByRole('button', { name: /Du khách: khach@demo.vn/ }).click()
   await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click()
-  await page.goto('/hotels/sea-garden')
-  await page.getByRole('link', { name: 'Chọn phòng' }).first().click()
-  await expect(page.getByRole('heading', { name: 'Đặt phòng khách sạn' })).toBeVisible()
-  await page.getByRole('button', { name: 'Tiếp tục', exact: true }).click()
-  await page.getByRole('button', { name: 'Tiếp tục', exact: true }).click()
+  await page.goto(`/hotels/sea-garden?checkIn=${datePlus(60)}&checkOut=${datePlus(62)}`)
+  await page.locator('button:enabled', { hasText: 'Chọn phòng' }).first().click()
+  await page.getByRole('link', { name: 'Tiếp tục đặt phòng' }).click()
+  await expect(page.getByRole('heading', { name: 'Xác nhận đặt phòng' })).toBeVisible()
   await page.getByRole('button', { name: 'Xác nhận và thanh toán' }).click()
   await page.getByRole('button', { name: 'Mô phỏng thành công' }).click()
   await expect(page.getByRole('heading', { name: 'Đặt phòng đã được xác nhận' })).toBeVisible()
@@ -137,14 +146,14 @@ test('du khách đặt phòng, hủy và theo dõi hoàn tiền qua Admin', asyn
   await expect(page.getByText('Đã hoàn tiền')).toBeVisible()
 })
 
-test('admin xác minh đối tác và hoàn thành đối soát demo', async ({ page }) => {
+test('admin xác minh chủ khách sạn và hoàn thành đối soát demo', async ({ page }) => {
   await page.goto('/auth/login')
   await page.getByRole('button', { name: /Quản trị: admin@demo.vn/ }).click()
   await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click()
   await page.goto('/admin/partners/partner-river')
   await page.getByRole('button', { name: 'Phê duyệt' }).click()
   await page.getByRole('button', { name: 'Xác nhận', exact: true }).click()
-  await expect(page.getByText('Đã cập nhật hồ sơ đối tác.')).toBeVisible()
+  await expect(page.getByText('Đã cập nhật hồ sơ chủ khách sạn.')).toBeVisible()
   await page.goto('/admin/settlements/SET-DEMO-001')
   await page.getByRole('button', { name: 'Duyệt chi trả' }).click()
   await page.getByRole('button', { name: 'Xác nhận', exact: true }).click()
